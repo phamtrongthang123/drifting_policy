@@ -1,7 +1,7 @@
 # Drifting Policy for PushT (Visual)
 
 A minimal fork of [Diffusion Policy](https://github.com/real-stanford/diffusion_policy) implementing
-[Drifting Model](https://lambertae.github.io/projects/drifting/) on the simulated PushT vision task.
+[Drifting Model in Generative Modeling via Drifting](https://lambertae.github.io/projects/drifting/) on the simulated PushT vision task.
 All other policies (IBC, BET, robomimic), tasks (kitchen, blockpush, robomimic), and real-robot code have been stripped out.
 If the authors of Drifting Model release the robotic control experiment then I will stop developing this repo, or else I will explore with other settings until I can reproduce the reported scores. 
 
