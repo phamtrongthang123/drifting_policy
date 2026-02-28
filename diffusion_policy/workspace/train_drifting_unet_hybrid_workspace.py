@@ -103,10 +103,14 @@ class TrainDriftingUnetHybridWorkspace(BaseWorkspace):
 
         # configure env
         env_runner: BaseImageRunner
-        env_runner = hydra.utils.instantiate(
-            cfg.task.env_runner,
-            output_dir=self.output_dir)
-        assert isinstance(env_runner, BaseImageRunner)
+        try:
+            env_runner = hydra.utils.instantiate(
+                cfg.task.env_runner,
+                output_dir=self.output_dir)
+            assert isinstance(env_runner, BaseImageRunner)
+        except Exception as e:
+            print(f"Warning: env_runner instantiation failed ({e}). Rollouts will be skipped.")
+            env_runner = None
 
         # configure logging
         wandb_run = wandb.init(
@@ -210,7 +214,7 @@ class TrainDriftingUnetHybridWorkspace(BaseWorkspace):
                 policy.eval()
 
                 # run rollout
-                if (self.epoch % cfg.training.rollout_every) == 0:
+                if env_runner is not None and (self.epoch % cfg.training.rollout_every) == 0:
                     runner_log = env_runner.run(policy)
                     # log all
                     step_log.update(runner_log)

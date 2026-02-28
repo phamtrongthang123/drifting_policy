@@ -3,10 +3,10 @@ checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
   topk:
-    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
+    format_str: epoch={epoch:04d}-val_loss={val_loss:.3f}.ckpt
     k: 5
-    mode: max
-    monitor_key: test_mean_score
+    mode: min
+    monitor_key: val_loss
 dataloader:
   batch_size: 512
   num_workers: 8
@@ -56,8 +56,8 @@ policy:
   _target_: diffusion_policy.policy.drifting_unet_hybrid_image_policy.DriftingUnetHybridImagePolicy
   cond_predict_scale: true
   crop_shape:
-  - 84
-  - 84
+  - 76
+  - 76
   diffusion_step_embed_dim: 128
   down_dims:
   - 512
