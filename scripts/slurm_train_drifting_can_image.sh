@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=train-drifting-lift-image
+#SBATCH --job-name=train-drifting-can-image
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=32
 #SBATCH --time=2-00:00:00
-#SBATCH --output=slurm_logs/train_drifting_lift_image_%j.out
+#SBATCH --output=slurm_logs/train_drifting_can_image_%j.out
 #SBATCH --partition=vgpu
 #SBATCH --constraint=1v100
 
@@ -34,10 +34,10 @@ export LD_LIBRARY_PATH=\$HOME/.mujoco/mujoco210/bin:\$CONDA_PREFIX/lib:\$LD_LIBR
 export MUJOCO_PY_MUJOCO_PATH=\$HOME/.mujoco/mujoco210
 export MUJOCO_GL=egl
 
-echo '=== Launching Drifting Policy Training (Lift Image) ==='
+echo '=== Launching Drifting Policy Training (Can Image) ==='
 python train.py \
     --config-dir=. \
-    --config-name=drifting_lift_image.yaml \
+    --config-name=drifting_can_image.yaml \
     training.seed=42 \
     training.device=cuda:0 \
     hydra.run.dir='data/outputs/\${now:%Y.%m.%d}/\${now:%H.%M.%S}_\${name}_\${task_name}'

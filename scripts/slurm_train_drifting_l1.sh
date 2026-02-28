@@ -33,6 +33,10 @@ cd ${PROJECT_ROOT}
 
 conda activate \"${CONDA_ENV_NAME}\"
 
+export LD_LIBRARY_PATH=\$HOME/.mujoco/mujoco210/bin:\$CONDA_PREFIX/lib:\$LD_LIBRARY_PATH
+export MUJOCO_PY_MUJOCO_PATH=\$HOME/.mujoco/mujoco210
+export MUJOCO_GL=egl
+
 echo '=== Launching Drifting Policy Training ==='
 python train.py \
     --config-dir=. \
