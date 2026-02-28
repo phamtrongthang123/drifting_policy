@@ -8,7 +8,7 @@ checkpoint:
     mode: min
     monitor_key: val_loss
 dataloader:
-  batch_size: 512
+  batch_size: 256
   num_workers: 8
   persistent_workers: false
   pin_memory: true

@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --time=2-00:00:00
 #SBATCH --output=slurm_logs/train_drifting_can_image_%j.out
-#SBATCH --partition=vgpu
-#SBATCH --constraint=1v100
+#SBATCH --partition=agpu
+#SBATCH --constraint=1a100
 
 set -euo pipefail
 
