@@ -6,8 +6,8 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --time=0-06:00:00
 #SBATCH --output=slurm_logs/ddpm_lift_image_%j.out
-#SBATCH --partition=agpu
-#SBATCH --constraint=1a100
+#SBATCH --partition=vgpu
+#SBATCH --constraint=1v100
 
 set -euo pipefail
 
