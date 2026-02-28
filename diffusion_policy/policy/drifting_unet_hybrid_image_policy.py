@@ -1,7 +1,6 @@
 from typing import Dict
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from diffusion_policy.model.common.normalizer import LinearNormalizer
 from diffusion_policy.policy.base_image_policy import BaseImagePolicy
 from diffusion_policy.model.diffusion.conditional_unet1d import ConditionalUnet1D
@@ -187,10 +186,10 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
         noise = torch.randn(nactions.shape, device=nactions.device)
         timesteps = torch.zeros((batch_size,), device=nactions.device, dtype=torch.long)
         pred_actions = self.model(noise, timesteps, global_cond=global_cond)
-        
+
         x = pred_actions.reshape(batch_size, -1)
         y_pos = nactions.reshape(batch_size, -1)
         y_neg = x
-        
+
         loss, metrics = compute_drifting_loss(x, y_pos, y_neg, temperatures=self.temperatures)
         return loss, metrics

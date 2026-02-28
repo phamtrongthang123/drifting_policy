@@ -160,8 +160,11 @@ class RobomimicReplayImageDataset(BaseImageDataset):
             if self.use_legacy_normalizer:
                 this_normalizer = normalizer_from_stat(stat)
         else:
-            # already normalized
-            this_normalizer = get_identity_normalizer_from_stat(stat)
+            # Range-normalize delta actions to [-1, 1] so the model output scale
+            # matches the target scale. Identity normalization leaves delta actions
+            # in their native tiny scale (~0.05), causing the one-step drifting loss
+            # gradient to overshoot and diverge.
+            this_normalizer = get_range_normalizer_from_stat(stat)
         normalizer['action'] = this_normalizer
 
         # obs
