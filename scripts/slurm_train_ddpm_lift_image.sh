@@ -49,7 +49,6 @@ python train.py \
     --config-name=ddpm_lift_image.yaml \
     training.seed=42 \
     training.device=cuda:0 \
-    training.num_epochs=100 \
     training.resume=false \
     hydra.run.dir='data/outputs/\${now:%Y.%m.%d}/\${now:%H.%M.%S}_ddpm_lift_image_baseline'
 "
