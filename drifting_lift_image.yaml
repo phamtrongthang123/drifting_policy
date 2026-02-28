@@ -3,10 +3,10 @@ checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
   topk:
-    format_str: epoch={epoch:04d}-val_loss={val_loss:.3f}.ckpt
+    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
     k: 5
-    mode: min
-    monitor_key: val_loss
+    mode: max
+    monitor_key: test_mean_score
 dataloader:
   batch_size: 256
   num_workers: 8
@@ -74,7 +74,7 @@ policy:
   shape_meta:
     action:
       shape:
-      - 7
+      - 10
     obs:
       agentview_image:
         shape:
@@ -107,7 +107,7 @@ policy:
 shape_meta:
   action:
     shape:
-    - 7
+    - 10
   obs:
     agentview_image:
       shape:
@@ -136,8 +136,8 @@ shape_meta:
 task:
   dataset:
     _target_: diffusion_policy.dataset.robomimic_replay_image_dataset.RobomimicReplayImageDataset
-    abs_action: false
-    dataset_path: data/robomimic/datasets/lift/ph/image.hdf5
+    abs_action: true
+    dataset_path: data/robomimic/datasets/lift/ph/image_abs.hdf5
     horizon: 16
     n_obs_steps: 2
     pad_after: ${eval:'${n_action_steps}-1'}
@@ -147,7 +147,7 @@ task:
     shape_meta:
       action:
         shape:
-        - 7
+        - 10
       obs:
         agentview_image:
           shape:
@@ -175,9 +175,9 @@ task:
     val_ratio: 0.02
   env_runner:
     _target_: diffusion_policy.env_runner.robomimic_image_runner.RobomimicImageRunner
-    abs_action: false
+    abs_action: true
     crf: 22
-    dataset_path: data/robomimic/datasets/lift/ph/image.hdf5
+    dataset_path: data/robomimic/datasets/lift/ph/image_abs.hdf5
     fps: 10
     max_steps: 400
     n_action_steps: 8
@@ -192,7 +192,7 @@ task:
     shape_meta:
       action:
         shape:
-        - 7
+        - 10
       obs:
         agentview_image:
           shape:
@@ -225,7 +225,7 @@ training:
   debug: false
   device: cuda:0
   gradient_accumulate_every: 1
-  lr_scheduler: constant_with_warmup
+  lr_scheduler: cosine
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null

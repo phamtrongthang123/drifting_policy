@@ -34,6 +34,13 @@ export LD_LIBRARY_PATH=\$HOME/.mujoco/mujoco210/bin:\$CONDA_PREFIX/lib:\$LD_LIBR
 export MUJOCO_PY_MUJOCO_PATH=\$HOME/.mujoco/mujoco210
 export MUJOCO_GL=egl
 
+if [ ! -f data/robomimic/datasets/lift/ph/image_abs.hdf5 ]; then
+    echo '=== Converting to absolute actions ==='
+    python -m diffusion_policy.scripts.robomimic_dataset_conversion \
+        -i data/robomimic/datasets/lift/ph/image.hdf5 \
+        -o data/robomimic/datasets/lift/ph/image_abs.hdf5
+fi
+
 echo '=== Launching Drifting Policy Training (Lift Image) ==='
 python train.py \
     --config-dir=. \
