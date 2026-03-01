@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --job-name=train-drifting-policy
+#SBATCH --job-name=train-drifting-tool-hang-lowdim
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=64
+#SBATCH --cpus-per-task=32
 #SBATCH --time=2-00:00:00
-#SBATCH --output=slurm_logs/train_drifting_%j.out
-#SBATCH --partition=agpu
-#SBATCH --constraint=1a100
+#SBATCH --output=slurm_logs/train_drifting_tool_hang_lowdim_%j.out
+#SBATCH --partition=vgpu
+#SBATCH --constraint=1v100
 #SBATCH --exclude=c2110
 
 set -euo pipefail
@@ -16,15 +16,12 @@ echo "Job started at: $(date)"
 echo "Running on node: $(hostname)"
 echo "Job ID: $SLURM_JOB_ID"
 
-# Define project root and environment
 PROJECT_ROOT=$(pwd)
 CONDA_ENV_NAME="robodiff"
 CONTAINER="$HOME/qwenvl-2.5-cu121.sif"
 
-# Create output directories
 mkdir -p slurm_logs
 
-# Execute training within Apptainer
 apptainer exec --nv --writable-tmpfs \
     --bind "$HOME:$HOME" \
     --bind /share/apps:/share/apps \
@@ -38,10 +35,10 @@ export LD_LIBRARY_PATH=\$HOME/.mujoco/mujoco210/bin:\$CONDA_PREFIX/lib:\$LD_LIBR
 export MUJOCO_PY_MUJOCO_PATH=\$HOME/.mujoco/mujoco210
 export MUJOCO_GL=egl
 
-echo '=== Launching Drifting Policy Training ==='
+echo '=== Launching Drifting Policy Training (Tool Hang Lowdim) ==='
 python train.py \
     --config-dir=. \
-    --config-name=drifting_pusht_image.yaml \
+    --config-name=drifting_tool_hang_lowdim.yaml \
     training.seed=42 \
     training.device=cuda:0 \
     hydra.run.dir='data/outputs/\${now:%Y.%m.%d}/\${now:%H.%M.%S}_\${name}_\${task_name}'

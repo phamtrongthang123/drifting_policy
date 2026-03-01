@@ -1,0 +1,138 @@
+_target_: diffusion_policy.workspace.train_drifting_unet_lowdim_workspace.TrainDriftingUnetLowdimWorkspace
+checkpoint:
+  save_last_ckpt: true
+  save_last_snapshot: false
+  topk:
+    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
+    k: 5
+    mode: max
+    monitor_key: test_mean_score
+dataloader:
+  batch_size: 256
+  num_workers: 8
+  persistent_workers: false
+  pin_memory: true
+  shuffle: true
+dataset_obs_steps: 2
+ema:
+  _target_: diffusion_policy.model.diffusion.ema_model.EMAModel
+  inv_gamma: 1.0
+  max_value: 0.9999
+  min_value: 0.0
+  power: 0.75
+  update_after_step: 0
+exp_name: default
+horizon: 16
+keypoint_visible_rate: 1.0
+logging:
+  group: null
+  id: null
+  mode: online
+  name: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_lowdim_lift
+  project: diffusion_policy_debug
+  resume: true
+  tags:
+  - train_drifting_unet_lowdim
+  - lift_lowdim
+  - default
+multi_run:
+  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_train_drifting_unet_lowdim_lift
+  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_lowdim_lift
+n_action_steps: 8
+n_latency_steps: 0
+n_obs_steps: 2
+name: train_drifting_unet_lowdim
+obs_as_global_cond: true
+optimizer:
+  _target_: torch.optim.AdamW
+  betas:
+  - 0.95
+  - 0.999
+  eps: 1.0e-08
+  lr: 0.0001
+  weight_decay: 1.0e-06
+past_action_visible: false
+policy:
+  _target_: diffusion_policy.policy.drifting_unet_lowdim_policy.DriftingUnetLowdimPolicy
+  horizon: 16
+  obs_dim: 19
+  action_dim: 10
+  n_action_steps: 8
+  n_obs_steps: 2
+  obs_as_global_cond: true
+  temperatures:
+  - 0.02
+  - 0.05
+  - 0.2
+  model:
+    _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
+    input_dim: 10
+    local_cond_dim: null
+    global_cond_dim: ${eval:'${policy.obs_dim} * ${n_obs_steps}'}
+    diffusion_step_embed_dim: 128
+    down_dims:
+    - 512
+    - 1024
+    - 2048
+    kernel_size: 5
+    n_groups: 8
+    cond_predict_scale: true
+task:
+  dataset:
+    _target_: diffusion_policy.dataset.robomimic_replay_lowdim_dataset.RobomimicReplayLowdimDataset
+    dataset_path: data/robomimic/datasets/lift/ph/low_dim_abs.hdf5
+    horizon: 16
+    pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
+    pad_after: ${eval:'${n_action_steps}-1'}
+    obs_keys: ['object', 'robot0_eef_pos', 'robot0_eef_quat', 'robot0_gripper_qpos']
+    abs_action: true
+    use_legacy_normalizer: false
+    rotation_rep: rotation_6d
+    seed: 42
+    val_ratio: 0.02
+  env_runner:
+    _target_: diffusion_policy.env_runner.robomimic_lowdim_runner.RobomimicLowdimRunner
+    dataset_path: data/robomimic/datasets/lift/ph/low_dim_abs.hdf5
+    obs_keys: ['object', 'robot0_eef_pos', 'robot0_eef_quat', 'robot0_gripper_qpos']
+    n_train: 6
+    n_train_vis: 2
+    train_start_idx: 0
+    n_test: 50
+    n_test_vis: 3
+    test_start_seed: 100000
+    max_steps: 400
+    n_obs_steps: ${n_obs_steps}
+    n_action_steps: ${n_action_steps}
+    n_latency_steps: ${n_latency_steps}
+    render_hw: [128, 128]
+    fps: 10
+    crf: 22
+    past_action: ${past_action_visible}
+    abs_action: true
+    tqdm_interval_sec: 1.0
+    n_envs: 28
+  name: lift_lowdim
+task_name: lift_lowdim
+training:
+  checkpoint_every: 50
+  debug: false
+  device: cuda:0
+  gradient_accumulate_every: 1
+  lr_scheduler: cosine
+  lr_warmup_steps: 500
+  max_train_steps: null
+  max_val_steps: null
+  num_epochs: 500
+  resume: true
+  rollout_every: 50
+  sample_every: 5
+  seed: 42
+  tqdm_interval_sec: 1.0
+  use_ema: true
+  val_every: 1
+val_dataloader:
+  batch_size: 64
+  num_workers: 8
+  persistent_workers: false
+  pin_memory: true
+  shuffle: false

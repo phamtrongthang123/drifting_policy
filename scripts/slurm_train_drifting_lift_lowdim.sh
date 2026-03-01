@@ -1,11 +1,11 @@
 #!/bin/bash
-#SBATCH --job-name=train-drifting-policy
+#SBATCH --job-name=train-drifting-lift-lowdim
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=64
+#SBATCH --cpus-per-task=32
 #SBATCH --time=2-00:00:00
-#SBATCH --output=slurm_logs/train_drifting_%j.out
+#SBATCH --output=slurm_logs/train_drifting_lift_lowdim_%j.out
 #SBATCH --partition=agpu
 #SBATCH --constraint=1a100
 #SBATCH --exclude=c2110
@@ -16,15 +16,12 @@ echo "Job started at: $(date)"
 echo "Running on node: $(hostname)"
 echo "Job ID: $SLURM_JOB_ID"
 
-# Define project root and environment
 PROJECT_ROOT=$(pwd)
 CONDA_ENV_NAME="robodiff"
 CONTAINER="$HOME/qwenvl-2.5-cu121.sif"
 
-# Create output directories
 mkdir -p slurm_logs
 
-# Execute training within Apptainer
 apptainer exec --nv --writable-tmpfs \
     --bind "$HOME:$HOME" \
     --bind /share/apps:/share/apps \
@@ -38,10 +35,17 @@ export LD_LIBRARY_PATH=\$HOME/.mujoco/mujoco210/bin:\$CONDA_PREFIX/lib:\$LD_LIBR
 export MUJOCO_PY_MUJOCO_PATH=\$HOME/.mujoco/mujoco210
 export MUJOCO_GL=egl
 
-echo '=== Launching Drifting Policy Training ==='
+if [ ! -f data/robomimic/datasets/lift/ph/low_dim_abs.hdf5 ]; then
+    echo '=== Converting to absolute actions ==='
+    python -m diffusion_policy.scripts.robomimic_dataset_conversion \
+        -i data/robomimic/datasets/lift/ph/low_dim.hdf5 \
+        -o data/robomimic/datasets/lift/ph/low_dim_abs.hdf5
+fi
+
+echo '=== Launching Drifting Policy Training (Lift Lowdim) ==='
 python train.py \
     --config-dir=. \
-    --config-name=drifting_pusht_image.yaml \
+    --config-name=drifting_lift_lowdim.yaml \
     training.seed=42 \
     training.device=cuda:0 \
     hydra.run.dir='data/outputs/\${now:%Y.%m.%d}/\${now:%H.%M.%S}_\${name}_\${task_name}'

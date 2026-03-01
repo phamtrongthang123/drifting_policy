@@ -3,10 +3,10 @@ checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
   topk:
-    format_str: epoch={epoch:04d}-val_loss={val_loss:.3f}.ckpt
+    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
     k: 5
-    mode: min
-    monitor_key: val_loss
+    mode: max
+    monitor_key: test_mean_score
 dataloader:
   batch_size: 256
   num_workers: 8
@@ -28,16 +28,16 @@ logging:
   group: null
   id: null
   mode: online
-  name: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_hybrid_tool_hang_image
+  name: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_hybrid_can_image
   project: diffusion_policy_debug
   resume: true
   tags:
   - train_drifting_unet_hybrid
-  - tool_hang_image
+  - can_image
   - default
 multi_run:
-  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_train_drifting_unet_hybrid_tool_hang_image
-  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_hybrid_tool_hang_image
+  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_train_drifting_unet_hybrid_can_image
+  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_hybrid_can_image
 n_action_steps: 8
 n_latency_steps: 0
 n_obs_steps: 2
@@ -56,8 +56,8 @@ policy:
   _target_: diffusion_policy.policy.drifting_unet_hybrid_image_policy.DriftingUnetHybridImagePolicy
   cond_predict_scale: true
   crop_shape:
-  - 216
-  - 216
+  - 76
+  - 76
   diffusion_step_embed_dim: 128
   down_dims:
   - 512
@@ -74,13 +74,13 @@ policy:
   shape_meta:
     action:
       shape:
-      - 7
+      - 10
     obs:
-      sideview_image:
+      agentview_image:
         shape:
         - 3
-        - 240
-        - 240
+        - 84
+        - 84
         type: rgb
       robot0_eef_pos:
         shape:
@@ -93,8 +93,8 @@ policy:
       robot0_eye_in_hand_image:
         shape:
         - 3
-        - 240
-        - 240
+        - 84
+        - 84
         type: rgb
       robot0_gripper_qpos:
         shape:
@@ -107,13 +107,13 @@ policy:
 shape_meta:
   action:
     shape:
-    - 7
+    - 10
   obs:
-    sideview_image:
+    agentview_image:
       shape:
       - 3
-      - 240
-      - 240
+      - 84
+      - 84
       type: rgb
     robot0_eef_pos:
       shape:
@@ -126,8 +126,8 @@ shape_meta:
     robot0_eye_in_hand_image:
       shape:
       - 3
-      - 240
-      - 240
+      - 84
+      - 84
       type: rgb
     robot0_gripper_qpos:
       shape:
@@ -136,8 +136,8 @@ shape_meta:
 task:
   dataset:
     _target_: diffusion_policy.dataset.robomimic_replay_image_dataset.RobomimicReplayImageDataset
-    abs_action: false
-    dataset_path: data/robomimic/datasets/tool_hang/ph/image.hdf5
+    abs_action: true
+    dataset_path: data/robomimic/datasets/can/ph/image_abs.hdf5
     horizon: 16
     n_obs_steps: 2
     pad_after: ${eval:'${n_action_steps}-1'}
@@ -147,13 +147,13 @@ task:
     shape_meta:
       action:
         shape:
-        - 7
+        - 10
       obs:
-        sideview_image:
+        agentview_image:
           shape:
           - 3
-          - 240
-          - 240
+          - 84
+          - 84
           type: rgb
         robot0_eef_pos:
           shape:
@@ -164,8 +164,8 @@ task:
         robot0_eye_in_hand_image:
           shape:
           - 3
-          - 240
-          - 240
+          - 84
+          - 84
           type: rgb
         robot0_gripper_qpos:
           shape:
@@ -175,11 +175,11 @@ task:
     val_ratio: 0.02
   env_runner:
     _target_: diffusion_policy.env_runner.robomimic_image_runner.RobomimicImageRunner
-    abs_action: false
+    abs_action: true
     crf: 22
-    dataset_path: data/robomimic/datasets/tool_hang/ph/image.hdf5
+    dataset_path: data/robomimic/datasets/can/ph/image_abs.hdf5
     fps: 10
-    max_steps: 700
+    max_steps: 400
     n_action_steps: 8
     n_envs: 28
     n_obs_steps: 2
@@ -188,17 +188,17 @@ task:
     n_train: 6
     n_train_vis: 2
     past_action: false
-    render_obs_key: sideview_image
+    render_obs_key: agentview_image
     shape_meta:
       action:
         shape:
-        - 7
+        - 10
       obs:
-        sideview_image:
+        agentview_image:
           shape:
           - 3
-          - 240
-          - 240
+          - 84
+          - 84
           type: rgb
         robot0_eef_pos:
           shape:
@@ -209,8 +209,8 @@ task:
         robot0_eye_in_hand_image:
           shape:
           - 3
-          - 240
-          - 240
+          - 84
+          - 84
           type: rgb
         robot0_gripper_qpos:
           shape:
@@ -218,18 +218,18 @@ task:
     test_start_seed: 100000
     tqdm_interval_sec: 1.0
     train_start_idx: 0
-  name: tool_hang_image
-task_name: tool_hang_image
+  name: can_image
+task_name: can_image
 training:
   checkpoint_every: 50
   debug: false
   device: cuda:0
   gradient_accumulate_every: 1
-  lr_scheduler: constant_with_warmup
+  lr_scheduler: cosine
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 3050
+  num_epochs: 500
   resume: true
   rollout_every: 50
   sample_every: 5

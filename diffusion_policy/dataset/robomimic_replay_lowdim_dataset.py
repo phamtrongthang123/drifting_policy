@@ -15,6 +15,7 @@ from diffusion_policy.common.normalize_util import (
     robomimic_abs_action_only_normalizer_from_stat,
     robomimic_abs_action_only_dual_arm_normalizer_from_stat,
     get_identity_normalizer_from_stat,
+    get_range_normalizer_from_stat,
     array_to_stats
 )
 
@@ -107,7 +108,7 @@ class RobomimicReplayLowdimDataset(BaseLowdimDataset):
                 this_normalizer = normalizer_from_stat(stat)
         else:
             # already normalized
-            this_normalizer = get_identity_normalizer_from_stat(stat)
+            this_normalizer = get_range_normalizer_from_stat(stat)
         normalizer['action'] = this_normalizer
         
         # aggregate obs stats

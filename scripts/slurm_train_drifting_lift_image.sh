@@ -8,6 +8,7 @@
 #SBATCH --output=slurm_logs/train_drifting_lift_image_%j.out
 #SBATCH --partition=agpu
 #SBATCH --constraint=1a100
+#SBATCH --exclude=c2110
 
 set -euo pipefail
 
