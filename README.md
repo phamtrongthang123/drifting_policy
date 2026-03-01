@@ -10,25 +10,27 @@ Numbers are **mean success rate** (higher is better). Drifting Policy uses **NFE
 
 | Task | Setting | Diffusion Policy (NFE=100) | **Drifting Policy (paper)** | Our status |
 |------|---------|---------------------------|----------------------------|------------|
-| **PushT** | Visual | 0.84 | **0.86** | ~0.78 (training) |
+| **PushT** | Visual | 0.84 | **0.86** | ~0.78 (batch 256) |
 | **Lift** | Visual | 1.00 | **1.00** | **0.92** (best epoch 100, batch 256) |
-| **Can** | Visual | 0.97 | **0.99** | training (job 177969) |
-| **ToolHang** | Visual | 0.73 | 0.67 | dataset downloading (~62 GB) |
+| **Can** | Visual | 0.97 | **0.99** | 0.02 (not learning) |
+| **ToolHang** | Visual | 0.73 | 0.67 | diverging (debugging) |
 
-> Note: PushT is currently ~0.78 at batch size 256 (target 0.86). Reaching the paper score likely requires further hyperparameter tuning beyond what the paper specifies.
+> Note: PushT visual is ~0.78 at batch 256 (target 0.86). PushT lowdim peaked at 0.819 at epoch 700 (batch 512), slight decline after. Reaching paper scores likely requires further hyperparameter tuning.
 >
-> Note: Lift peaked at 0.92 at epoch 100 (batch size 256) then declined to 0.78 by epoch 150. Best checkpoint: `epoch=0100-test_mean_score=0.920.ckpt`. Paper target is 1.00.
+> Note: Lift peaked at 0.92 at epoch 100 (batch 256) then declined to 0.78 by epoch 150. Best checkpoint: `epoch=0100-test_mean_score=0.920.ckpt`. Paper target is 1.00.
+>
+> Note: Can image scored 0.02 at epoch 50 then 0 at epochs 100/150 — still not learning after normalization fix. ToolHang lowdim diverges (val_loss 3.0→6.0). Both under investigation.
 
-### Not yet implemented (require a lowdim policy/workspace)
+### Low-dim (state-based) tasks
 
-| Task | Setting | Diffusion Policy | Drifting Policy (paper) |
-|------|---------|-----------------|------------------------|
-| Lift | State | 0.98 | **1.00** |
-| Can | State | 0.96 | **0.98** |
-| ToolHang | State | 0.30 | **0.38** |
-| PushT | State | **0.91** | 0.86 |
-| BlockPush | Phase 1 / 2 | 0.36 / 0.11 | **0.56 / 0.16** |
-| Kitchen | Phase 1–4 | 1.00/1.00/1.00/**0.99** | **1.00/1.00**/0.99/0.96 |
+| Task | Setting | Diffusion Policy | Drifting Policy (paper) | Our status |
+|------|---------|-----------------|------------------------|------------|
+| **PushT** | State | **0.91** | 0.86 | **0.819** (batch 512, epoch 700) |
+| Can | State | 0.96 | **0.98** | — |
+| ToolHang | State | 0.30 | **0.38** | diverging (debugging) |
+| Lift | State | 0.98 | **1.00** | — |
+| BlockPush | Phase 1 / 2 | 0.36 / 0.11 | **0.56 / 0.16** | — |
+| Kitchen | Phase 1–4 | 1.00/1.00/1.00/**0.99** | **1.00/1.00**/0.99/0.96 | — |
 
 ## Installation
 
