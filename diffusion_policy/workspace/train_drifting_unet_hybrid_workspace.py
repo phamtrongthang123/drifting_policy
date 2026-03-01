@@ -171,7 +171,6 @@ class TrainDriftingUnetHybridWorkspace(BaseWorkspace):
 
                         # step optimizer
                         if self.global_step % cfg.training.gradient_accumulate_every == 0:
-                            torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=2.0)
                             self.optimizer.step()
                             self.optimizer.zero_grad()
                             lr_scheduler.step()
