@@ -4,11 +4,9 @@ import numpy as np
 import gym
 from gym import spaces
 from omegaconf import OmegaConf
-from robomimic.envs.env_robosuite import EnvRobosuite
-
 class RobomimicImageWrapper(gym.Env):
-    def __init__(self, 
-        env: EnvRobosuite,
+    def __init__(self,
+        env,
         shape_meta: dict,
         init_state: Optional[np.ndarray]=None,
         render_obs_key='agentview_image',

@@ -1,20 +1,34 @@
-# Drifting Policy for PushT (Visual)
+# Drifting Policy
 
 A minimal fork of [Diffusion Policy](https://github.com/real-stanford/diffusion_policy) implementing
-[Drifting Model in Generative Modeling via Drifting](https://lambertae.github.io/projects/drifting/) on the simulated PushT vision task.
-All other policies (IBC, BET, robomimic), tasks (kitchen, blockpush, robomimic), and real-robot code have been stripped out.
-If the authors of Drifting Model release the robotic control experiment then I will stop developing this repo, or else I will explore with other settings until I can reproduce the reported scores. 
+[Drifting Model in Generative Modeling via Drifting](https://lambertae.github.io/projects/drifting/) on simulated robotic control tasks.
+All other policies (IBC, BET), real-robot code, and unrelated tasks have been stripped out.
 
-## Current results
+## Paper targets (Table 3) vs current results
 
-| Batch size | Best mean score |
-|------------|-----------------|
-| 256        | ~0.78           |
-| 64         | ~0.6x           |
+Numbers are **mean success rate** (higher is better). Drifting Policy uses **NFE=1** (single forward pass at inference).
 
-The original Drifting Model paper reports higher scores in a plug-and-play setting.
-But I couldn't make it to that score (0.86) after many trial and errors. So I think getting comparable numbers likely requires further hyperparameter tuning
-(learning rate, EMA schedule, temperatures, number of epochs, etc.) beyond what the paper provides.
+| Task | Setting | Diffusion Policy (NFE=100) | **Drifting Policy (paper)** | Our status |
+|------|---------|---------------------------|----------------------------|------------|
+| **PushT** | Visual | 0.84 | **0.86** | ~0.78 (training) |
+| **Lift** | Visual | 1.00 | **1.00** | **0.92** (best epoch 100, batch 256) |
+| **Can** | Visual | 0.97 | **0.99** | training (job 177969) |
+| **ToolHang** | Visual | 0.73 | 0.67 | dataset downloading (~62 GB) |
+
+> Note: PushT is currently ~0.78 at batch size 256 (target 0.86). Reaching the paper score likely requires further hyperparameter tuning beyond what the paper specifies.
+>
+> Note: Lift peaked at 0.92 at epoch 100 (batch size 256) then declined to 0.78 by epoch 150. Best checkpoint: `epoch=0100-test_mean_score=0.920.ckpt`. Paper target is 1.00.
+
+### Not yet implemented (require a lowdim policy/workspace)
+
+| Task | Setting | Diffusion Policy | Drifting Policy (paper) |
+|------|---------|-----------------|------------------------|
+| Lift | State | 0.98 | **1.00** |
+| Can | State | 0.96 | **0.98** |
+| ToolHang | State | 0.30 | **0.38** |
+| PushT | State | **0.91** | 0.86 |
+| BlockPush | Phase 1 / 2 | 0.36 / 0.11 | **0.56 / 0.16** |
+| Kitchen | Phase 1–4 | 1.00/1.00/1.00/**0.99** | **1.00/1.00**/0.99/0.96 |
 
 ## Installation
 
@@ -36,15 +50,24 @@ pip install -e .
 
 ## Data
 
-Download the PushT dataset into a `data/` directory:
+**PushT** (Zarr format):
 ```bash
 mkdir -p data && cd data
 wget https://diffusion-policy.cs.columbia.edu/data/training/pusht.zip
-unzip pusht.zip && rm -f pusht.zip
-cd ..
+unzip pusht.zip && rm -f pusht.zip && cd ..
+# -> data/pusht/pusht_cchi_v7_replay.zarr
 ```
 
-This should produce `data/pusht/pusht_cchi_v7_replay.zarr`.
+**Robomimic tasks** (Lift, Can, ToolHang) via the robomimic download script:
+```bash
+python -m robomimic.scripts.download_datasets \
+    --download_dir data/robomimic/datasets \
+    --tasks lift can tool_hang \
+    --dataset_types ph \
+    --hdf5_types image
+# -> data/robomimic/datasets/{lift,can,tool_hang}/ph/image.hdf5
+# Sizes: lift ~800 MB, can ~2 GB, tool_hang ~62 GB
+```
 
 ## Training
 
@@ -76,12 +99,12 @@ The policy is evaluated every 50 epochs; `test/mean_score` is logged to wandb.
 
 ### SLURM
 
-Two SLURM scripts are provided in `scripts/`:
-- `slurm_train_drifting.sh` -- 2-day job on A100
-- `slurm_train_drifting_l1.sh` -- 6-hour short job on A100
-
 ```bash
-sbatch scripts/slurm_train_drifting.sh
+sbatch scripts/slurm_train_drifting.sh              # PushT (A100, 2-day)
+sbatch scripts/slurm_train_drifting_l1.sh           # PushT quick test (A100, 6-hour)
+sbatch scripts/slurm_train_drifting_lift_image.sh   # Lift visual (V100, 2-day)
+sbatch scripts/slurm_train_drifting_can_image.sh    # Can visual (V100, 2-day)
+sbatch scripts/slurm_train_drifting_tool_hang_image.sh  # ToolHang visual (V100, 2-day)
 ```
 
 ## Evaluation
@@ -100,28 +123,34 @@ Results are written to `data/eval_output/eval_log.json`.
 
 ```
 .
-├── train.py                        # Training entry point
-├── eval.py                         # Evaluation entry point
-├── drifting_pusht_image.yaml       # Main config
-├── setup.py                        # Package installer
-├── conda_environment.yaml          # Conda env spec
+├── train.py                              # Training entry point
+├── eval.py                               # Evaluation entry point
+├── drifting_pusht_image.yaml             # PushT config
+├── drifting_lift_image.yaml              # Lift config
+├── drifting_can_image.yaml               # Can config
+├── drifting_tool_hang_image.yaml         # ToolHang config
+├── setup.py                              # Package installer
+├── conda_environment.yaml                # Conda env spec
 ├── scripts/
-│   ├── slurm_train_drifting.sh
-│   └── slurm_train_drifting_l1.sh
+│   ├── slurm_train_drifting.sh           # PushT (A100, 2-day)
+│   ├── slurm_train_drifting_l1.sh        # PushT quick (A100, 6-hour)
+│   ├── slurm_train_drifting_lift_image.sh
+│   ├── slurm_train_drifting_can_image.sh
+│   └── slurm_train_drifting_tool_hang_image.sh
 └── diffusion_policy/
-    ├── workspace/                  # Training loop
-    ├── policy/                     # Drifting policy + base class
+    ├── workspace/                        # Training loop
+    ├── policy/                           # Drifting policy + base class
     ├── model/
-    │   ├── drifting/               # Drifting loss computation
-    │   ├── diffusion/              # U-Net backbone, EMA
-    │   ├── vision/                 # Observation encoder
-    │   └── common/                 # Normalizer, LR scheduler, mixins
-    ├── env_runner/                 # PushT evaluation runner
-    ├── gym_util/                   # Async vector env, wrappers
-    ├── common/                     # Replay buffer, sampler, utilities
-    ├── real_world/                 # VideoRecorder (used by wrappers)
-    ├── codecs/                     # Zarr image codec
-    └── config/task/                # PushT image task config
+    │   ├── drifting/                     # Drifting loss computation
+    │   ├── diffusion/                    # U-Net backbone, EMA
+    │   ├── vision/                       # Observation encoder
+    │   └── common/                       # Normalizer, LR scheduler, mixins
+    ├── env_runner/                       # Evaluation runners (PushT, robomimic)
+    ├── gym_util/                         # Async vector env, wrappers
+    ├── common/                           # Replay buffer, sampler, utilities
+    ├── real_world/                       # VideoRecorder (used by wrappers)
+    ├── codecs/                           # Zarr image codec
+    └── config/task/                      # Task configs
 ```
 
 ## Quick explanation of the meat of my implementation
