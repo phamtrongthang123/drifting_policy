@@ -29,6 +29,7 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
             obs_encoder_group_norm=False,
             eval_fixed_crop=False,
             temperatures=[0.02, 0.05, 0.2],
+            per_timestep_loss=False,
             **kwargs):
         super().__init__()
 
@@ -139,6 +140,7 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
         self.n_obs_steps = n_obs_steps
         self.obs_as_global_cond = obs_as_global_cond
         self.temperatures = temperatures
+        self.per_timestep_loss = per_timestep_loss
         self.kwargs = kwargs
 
     def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -187,9 +189,26 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
         timesteps = torch.zeros((batch_size,), device=nactions.device, dtype=torch.long)
         pred_actions = self.model(noise, timesteps, global_cond=global_cond)
 
-        x = pred_actions.reshape(batch_size, -1)
-        y_pos = nactions.reshape(batch_size, -1)
-        y_neg = x
-
-        loss, metrics = compute_drifting_loss(x, y_pos, y_neg, temperatures=self.temperatures)
-        return loss, metrics
+        if self.per_timestep_loss:
+            # Loop over timestep positions so kernel attention only compares
+            # actions at the same position (avoids cross-timestep interference).
+            T_horizon = pred_actions.shape[1]
+            total_loss = 0
+            all_metrics = {}
+            for t in range(T_horizon):
+                x_t = pred_actions[:, t, :]   # [B, Da]
+                y_pos_t = nactions[:, t, :]    # [B, Da]
+                y_neg_t = x_t
+                loss_t, metrics_t = compute_drifting_loss(
+                    x_t, y_pos_t, y_neg_t, temperatures=self.temperatures)
+                total_loss += loss_t
+                if t == 0:
+                    all_metrics = metrics_t
+            loss = total_loss / T_horizon
+            return loss, all_metrics
+        else:
+            x = pred_actions.reshape(batch_size, -1)
+            y_pos = nactions.reshape(batch_size, -1)
+            y_neg = x
+            loss, metrics = compute_drifting_loss(x, y_pos, y_neg, temperatures=self.temperatures)
+            return loss, metrics

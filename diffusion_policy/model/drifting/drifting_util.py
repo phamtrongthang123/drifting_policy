@@ -52,11 +52,6 @@ def compute_V(x, y_pos, y_neg, T):
     drift_neg = W_neg @ y_neg  # [N, D]
 
     V = drift_pos - drift_neg
-    
-    # Debug prints for V computation
-    print(f"  [compute_V] drift_pos mean: {drift_pos.mean().item():.6f}, std: {drift_pos.std().item():.6f}")
-    print(f"  [compute_V] drift_neg mean: {drift_neg.mean().item():.6f}, std: {drift_neg.std().item():.6f}")
-    print(f"  [compute_V] V mean: {V.mean().item():.6f}, max: {V.max().item():.6f}, min: {V.min().item():.6f}")
     return V
 
 
@@ -77,15 +72,11 @@ def compute_drifting_loss(x, y_pos, y_neg, temperatures=[0.05]):
     all_samples = torch.cat([x, y_pos], dim=0)
     pairwise_dist = torch.cdist(all_samples, all_samples)
     S_j = torch.mean(pairwise_dist)/ (D ** 0.5 + 1e-6)
-    
-    print(f"[Drift Loss] Feature Normalization Scale S_j: {S_j.item():.6f}")
 
     # Normalized samples
     x_norm = x / (S_j.detach() + 1e-6)
     y_pos_norm = y_pos / (S_j.detach() + 1e-6)
     y_neg_norm = y_neg / (S_j.detach() + 1e-6)
-    
-    print(f"[Drift Loss] x_norm mean: {x_norm.mean().item():.6f}")
 
     metrics = {
         "train/drifting_S_j": S_j.item()
@@ -93,7 +84,6 @@ def compute_drifting_loss(x, y_pos, y_neg, temperatures=[0.05]):
 
     V_total = torch.zeros_like(x)
     for T in temperatures:
-        print(f"[Drift Loss] Processing Temperature T={T}")
         # Note: Paper uses T * sqrt(D) for normalized features
         scaled_T = T * (D ** 0.5)
         V_t = compute_V(x_norm, y_pos_norm, y_neg_norm, scaled_T)
@@ -101,19 +91,14 @@ def compute_drifting_loss(x, y_pos, y_neg, temperatures=[0.05]):
         # Drift normalization as per Appendix A.8
         # lambda_j = sqrt( E[ ||V_j||^2 / D ] )
         lambda_j = torch.sqrt(torch.mean(torch.sum(V_t**2, dim=-1)) / D + 1e-6)
-        
-        print(f"[Drift Loss] T={T}: lambda_j (Drift Magnitude - TRACK THIS FOR CONVERGENCE): {lambda_j.item():.6f}")
         metrics[f"train/drifting_lambda_T{T}"] = lambda_j.item()
         
         V_t = V_t / (lambda_j.detach() + 1e-6)
         V_total = V_total + V_t
 
-    print(f"[Drift Loss] V_total mean: {V_total.mean().item():.6f}, std: {V_total.std().item():.6f}")
-
     # MSE loss: MSE(phi_j(x) - sg(phi_j(x) + V_j))
     # Note: drifting utility works on normalized features.
     target = (x_norm + V_total).detach()
     loss = F.mse_loss(x_norm, target)
-    print(f"[Drift Loss] Final Loss: {loss.item():.6f}")
 
     return loss, metrics

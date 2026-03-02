@@ -1,4 +1,4 @@
-_target_: diffusion_policy.workspace.train_drifting_unet_hybrid_workspace.TrainDriftingUnetHybridWorkspace
+_target_: diffusion_policy.workspace.train_diffusion_unet_hybrid_workspace.TrainDiffusionUnetHybridWorkspace
 checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
@@ -8,7 +8,7 @@ checkpoint:
     mode: max
     monitor_key: test_mean_score
 dataloader:
-  batch_size: 512
+  batch_size: 256
   num_workers: 8
   persistent_workers: false
   pin_memory: true
@@ -28,20 +28,20 @@ logging:
   group: null
   id: null
   mode: online
-  name: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_hybrid_can_image
+  name: ${now:%Y.%m.%d-%H.%M.%S}_ddpm_can_image_baseline
   project: diffusion_policy_debug
   resume: true
   tags:
-  - train_drifting_unet_hybrid
+  - train_diffusion_unet_hybrid
   - can_image
-  - default
+  - ddpm_baseline
 multi_run:
-  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_train_drifting_unet_hybrid_can_image
-  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_hybrid_can_image
+  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_ddpm_can_image_baseline
+  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_ddpm_can_image_baseline
 n_action_steps: 8
 n_latency_steps: 0
 n_obs_steps: 2
-name: train_drifting_unet_hybrid
+name: train_diffusion_unet_hybrid
 obs_as_global_cond: true
 optimizer:
   _target_: torch.optim.AdamW
@@ -53,7 +53,16 @@ optimizer:
   weight_decay: 1.0e-06
 past_action_visible: false
 policy:
-  _target_: diffusion_policy.policy.drifting_unet_hybrid_image_policy.DriftingUnetHybridImagePolicy
+  _target_: diffusion_policy.policy.diffusion_unet_hybrid_image_policy.DiffusionUnetHybridImagePolicy
+  noise_scheduler:
+    _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
+    num_train_timesteps: 100
+    beta_start: 0.0001
+    beta_end: 0.02
+    beta_schedule: squaredcos_cap_v2
+    variance_type: fixed_small
+    clip_sample: true
+    prediction_type: epsilon
   cond_predict_scale: true
   crop_shape:
   - 76
@@ -69,6 +78,7 @@ policy:
   n_action_steps: 8
   n_groups: 8
   n_obs_steps: 2
+  num_inference_steps: 100
   obs_as_global_cond: true
   obs_encoder_group_norm: true
   shape_meta:
@@ -100,11 +110,6 @@ policy:
         shape:
         - 2
         type: low_dim
-  per_timestep_loss: true
-  temperatures:
-  - 0.02
-  - 0.05
-  - 0.2
 shape_meta:
   action:
     shape:
@@ -225,11 +230,11 @@ training:
   debug: false
   device: cuda:0
   gradient_accumulate_every: 1
-  lr_scheduler: constant_with_warmup
+  lr_scheduler: cosine
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 3050
+  num_epochs: 200
   resume: true
   rollout_every: 50
   sample_every: 5

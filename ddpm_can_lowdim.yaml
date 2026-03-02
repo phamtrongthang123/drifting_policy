@@ -1,4 +1,4 @@
-_target_: diffusion_policy.workspace.train_drifting_unet_lowdim_workspace.TrainDriftingUnetLowdimWorkspace
+_target_: diffusion_policy.workspace.train_diffusion_unet_lowdim_workspace.TrainDiffusionUnetLowdimWorkspace
 checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
@@ -28,20 +28,20 @@ logging:
   group: null
   id: null
   mode: online
-  name: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_lowdim_tool_hang
+  name: ${now:%Y.%m.%d-%H.%M.%S}_ddpm_can_lowdim_baseline
   project: diffusion_policy_debug
   resume: true
   tags:
-  - train_drifting_unet_lowdim
-  - tool_hang_lowdim
-  - default
+  - train_diffusion_unet_lowdim
+  - can_lowdim
+  - ddpm_baseline
 multi_run:
-  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_train_drifting_unet_lowdim_tool_hang
-  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_train_drifting_unet_lowdim_tool_hang
+  run_dir: data/outputs/${now:%Y.%m.%d}/${now:%H.%M.%S}_ddpm_can_lowdim_baseline
+  wandb_name_base: ${now:%Y.%m.%d-%H.%M.%S}_ddpm_can_lowdim_baseline
 n_action_steps: 8
 n_latency_steps: 0
 n_obs_steps: 2
-name: train_drifting_unet_lowdim
+name: train_diffusion_unet_lowdim
 obs_as_global_cond: true
 optimizer:
   _target_: torch.optim.AdamW
@@ -52,19 +52,26 @@ optimizer:
   lr: 0.0001
   weight_decay: 1.0e-06
 past_action_visible: false
+pred_action_steps_only: false
 policy:
-  _target_: diffusion_policy.policy.drifting_unet_lowdim_policy.DriftingUnetLowdimPolicy
+  _target_: diffusion_policy.policy.diffusion_unet_lowdim_policy.DiffusionUnetLowdimPolicy
+  noise_scheduler:
+    _target_: diffusers.schedulers.scheduling_ddpm.DDPMScheduler
+    num_train_timesteps: 100
+    beta_start: 0.0001
+    beta_end: 0.02
+    beta_schedule: squaredcos_cap_v2
+    variance_type: fixed_small
+    clip_sample: true
+    prediction_type: epsilon
   horizon: 16
-  obs_dim: 53
+  obs_dim: 23
   action_dim: 7
   n_action_steps: 8
   n_obs_steps: 2
+  num_inference_steps: 100
   obs_as_global_cond: true
-  per_timestep_loss: true
-  temperatures:
-  - 0.02
-  - 0.05
-  - 0.2
+  pred_action_steps_only: false
   model:
     _target_: diffusion_policy.model.diffusion.conditional_unet1d.ConditionalUnet1D
     input_dim: 7
@@ -81,7 +88,7 @@ policy:
 task:
   dataset:
     _target_: diffusion_policy.dataset.robomimic_replay_lowdim_dataset.RobomimicReplayLowdimDataset
-    dataset_path: data/robomimic/datasets/tool_hang/ph/low_dim.hdf5
+    dataset_path: data/robomimic/datasets/can/ph/low_dim.hdf5
     horizon: 16
     pad_before: ${eval:'${n_obs_steps}-1+${n_latency_steps}'}
     pad_after: ${eval:'${n_action_steps}-1'}
@@ -92,7 +99,7 @@ task:
     val_ratio: 0.02
   env_runner:
     _target_: diffusion_policy.env_runner.robomimic_lowdim_runner.RobomimicLowdimRunner
-    dataset_path: data/robomimic/datasets/tool_hang/ph/low_dim.hdf5
+    dataset_path: data/robomimic/datasets/can/ph/low_dim.hdf5
     obs_keys: ['object', 'robot0_eef_pos', 'robot0_eef_quat', 'robot0_gripper_qpos']
     n_train: 6
     n_train_vis: 2
@@ -100,7 +107,7 @@ task:
     n_test: 50
     n_test_vis: 4
     test_start_seed: 100000
-    max_steps: 700
+    max_steps: 400
     n_obs_steps: ${n_obs_steps}
     n_action_steps: ${n_action_steps}
     n_latency_steps: ${n_latency_steps}
@@ -109,19 +116,20 @@ task:
     crf: 22
     past_action: ${past_action_visible}
     abs_action: false
+    tqdm_interval_sec: 1.0
     n_envs: 28
-  name: tool_hang_lowdim
-task_name: tool_hang_lowdim
+  name: can_lowdim
+task_name: can_lowdim
 training:
   checkpoint_every: 50
   debug: false
   device: cuda:0
   gradient_accumulate_every: 1
-  lr_scheduler: constant_with_warmup
+  lr_scheduler: cosine
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 3050
+  num_epochs: 200
   resume: true
   rollout_every: 50
   sample_every: 5
