@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gres=gpu:1
-#SBATCH --cpus-per-task=32
+#SBATCH --cpus-per-task=24
 #SBATCH --time=2-00:00:00
 #SBATCH --output=slurm_logs/train_drifting_can_lowdim_%j.out
 #SBATCH --partition=agpu

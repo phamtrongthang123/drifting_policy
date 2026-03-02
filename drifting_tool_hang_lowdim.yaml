@@ -3,10 +3,10 @@ checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
   topk:
-    format_str: epoch={epoch:04d}-val_loss={val_loss:.3f}.ckpt
+    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
     k: 5
-    mode: min
-    monitor_key: val_loss
+    mode: max
+    monitor_key: test_mean_score
 dataloader:
   batch_size: 512
   num_workers: 8
@@ -61,6 +61,7 @@ policy:
   n_obs_steps: 2
   obs_as_global_cond: true
   temperatures:
+  - 0.005
   - 0.02
   - 0.05
   - 0.2
@@ -71,9 +72,9 @@ policy:
     global_cond_dim: ${eval:'${policy.obs_dim} * ${n_obs_steps}'}
     diffusion_step_embed_dim: 128
     down_dims:
+    - 256
     - 512
     - 1024
-    - 2048
     kernel_size: 5
     n_groups: 8
     cond_predict_scale: true

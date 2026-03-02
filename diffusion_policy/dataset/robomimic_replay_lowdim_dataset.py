@@ -115,7 +115,7 @@ class RobomimicReplayLowdimDataset(BaseLowdimDataset):
         obs_stat = array_to_stats(self.replay_buffer['obs'])
 
 
-        normalizer['obs'] = normalizer_from_stat(obs_stat)
+        normalizer['obs'] = get_range_normalizer_from_stat(obs_stat)
         return normalizer
 
     def get_all_actions(self) -> torch.Tensor:
