@@ -12,14 +12,14 @@ Numbers are **mean success rate** (higher is better). Drifting Policy uses **NFE
 |------|---------|---------------------------|----------------------------|------------|
 | **PushT** | Visual | 0.84 | **0.86** | ~0.78 (batch 256) |
 | **Lift** | Visual | 1.00 | **1.00** | **0.92** (best epoch 100, batch 256) |
-| **Can** | Visual | 0.97 | **0.99** | 0.02 (not learning) |
+| **Can** | Visual | 0.97 | **0.99** | cannot learn (0.02 at epoch 50, 0 at 100/150) |
 | **ToolHang** | Visual | 0.73 | 0.67 | diverging (debugging) |
 
 > Note: PushT visual is ~0.78 at batch 256 (target 0.86). PushT lowdim peaked at 0.819 at epoch 700 (batch 512), slight decline after. Reaching paper scores likely requires further hyperparameter tuning.
 >
 > Note: Lift peaked at 0.92 at epoch 100 (batch 256) then declined to 0.78 by epoch 150. Best checkpoint: `epoch=0100-test_mean_score=0.920.ckpt`. Paper target is 1.00.
 >
-> Note: Can image scored 0.02 at epoch 50 then 0 at epochs 100/150 — still not learning after normalization fix. ToolHang lowdim diverges (val_loss 3.0→6.0). Both under investigation.
+> Note: Can image cannot learn — scored 0.02 at epoch 50, 0 at epochs 100 and 150. Debugging ongoing (normalization fix applied, per-timestep loss being tested). ToolHang lowdim diverges (val_loss 3.0→6.0), also under investigation.
 
 ### Low-dim (state-based) tasks
 
