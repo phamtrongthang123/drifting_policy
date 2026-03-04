@@ -21,8 +21,8 @@ def compute_V(x, y_pos, y_neg, T):
 
     # ignore self (if y_neg is x)
     # Using a small epsilon to avoid exactly zero distance if not ignoring self
-    if x is y_neg or torch.allclose(x, y_neg):
-        dist_neg = dist_neg + torch.eye(N, device=x.device) * 1e6
+    # Always mask self-distances (paper Alg. 2 applies this unconditionally)
+    dist_neg = dist_neg + torch.eye(N, device=x.device) * 1e6
 
     # compute logits
     logit_pos = -dist_pos / T
@@ -64,14 +64,13 @@ def compute_drifting_loss(x, y_pos, y_neg, temperatures=[0.05]):
     # Flatten if needed, but here we expect [B, D] where D is the flattened dimension
 
     # Feature normalization as per Appendix A.8
-    # "Intuitively, we want the average distance to be sqrt(C_j)"
-    # dist_j(x, y) = ||phi_j(x) - phi_j(y)|| / S_j
-    # S_j = 1/sqrt(C_j) * E[||phi_j(x) - phi_j(y)||]
-
-    # Concatenate all samples for global distance normalization
-    all_samples = torch.cat([x, y_pos], dim=0)
-    pairwise_dist = torch.cdist(all_samples, all_samples)
-    S_j = torch.mean(pairwise_dist)/ (D ** 0.5 + 1e-6)
+    # S_j = (1/sqrt(C_j)) * E_x E_y [ ||phi_j(x) - phi_j(y)|| ]
+    # The paper reuses cdist(x, y_pos) cross-distances — NOT the full pairwise
+    # matrix that includes within-distribution distances. Using within-distribution
+    # distances (especially small y_pos-to-y_pos distances for clustered Can demos)
+    # underestimates S_j, making gradients 2*V/S_j too large and causing divergence.
+    dist_cross = torch.cdist(x, y_pos)  # [N, N_pos] cross-distances
+    S_j = torch.mean(dist_cross) / (D ** 0.5 + 1e-6)
 
     # Normalized samples
     x_norm = x / (S_j.detach() + 1e-6)

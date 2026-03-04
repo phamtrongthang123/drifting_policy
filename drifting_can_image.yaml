@@ -100,7 +100,7 @@ policy:
         shape:
         - 2
         type: low_dim
-  per_timestep_loss: true
+  per_timestep_loss: false
   temperatures:
   - 0.02
   - 0.05
