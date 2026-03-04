@@ -101,6 +101,7 @@ policy:
         - 2
         type: low_dim
   per_timestep_loss: true
+  bc_coeff: 10.0
   temperatures:
   - 0.02
   - 0.05
@@ -229,7 +230,7 @@ training:
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 3050
+  num_epochs: 300
   resume: true
   rollout_every: 50
   sample_every: 5

@@ -30,6 +30,7 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
             eval_fixed_crop=False,
             temperatures=[0.02, 0.05, 0.2],
             per_timestep_loss=False,
+            bc_coeff=0.0,
             **kwargs):
         super().__init__()
 
@@ -141,6 +142,7 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
         self.obs_as_global_cond = obs_as_global_cond
         self.temperatures = temperatures
         self.per_timestep_loss = per_timestep_loss
+        self.bc_coeff = bc_coeff
         self.kwargs = kwargs
 
     def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -194,7 +196,7 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
             # actions at the same position (avoids cross-timestep interference).
             T_horizon = pred_actions.shape[1]
             total_loss = 0
-            all_metrics = {}
+            accumulated_metrics = {}
             for t in range(T_horizon):
                 x_t = pred_actions[:, t, :]   # [B, Da]
                 y_pos_t = nactions[:, t, :]    # [B, Da]
@@ -202,13 +204,19 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
                 loss_t, metrics_t = compute_drifting_loss(
                     x_t, y_pos_t, y_neg_t, temperatures=self.temperatures)
                 total_loss += loss_t
-                if t == 0:
-                    all_metrics = metrics_t
+                for k, v in metrics_t.items():
+                    accumulated_metrics[k] = accumulated_metrics.get(k, 0.0) + v / T_horizon
             loss = total_loss / T_horizon
-            return loss, all_metrics
+            all_metrics = accumulated_metrics
         else:
             x = pred_actions.reshape(batch_size, -1)
             y_pos = nactions.reshape(batch_size, -1)
             y_neg = x
-            loss, metrics = compute_drifting_loss(x, y_pos, y_neg, temperatures=self.temperatures)
-            return loss, metrics
+            loss, all_metrics = compute_drifting_loss(x, y_pos, y_neg, temperatures=self.temperatures)
+
+        if self.bc_coeff > 0:
+            bc_loss = torch.nn.functional.mse_loss(pred_actions, nactions)
+            all_metrics['train/bc_loss'] = bc_loss.item()
+            loss = loss + self.bc_coeff * bc_loss
+
+        return loss, all_metrics
