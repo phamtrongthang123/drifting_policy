@@ -11,7 +11,7 @@ import robomimic.utils.obs_utils as ObsUtils
 import robomimic.models.base_nets as rmbn
 import diffusion_policy.model.vision.crop_randomizer as dmvc
 from diffusion_policy.common.pytorch_util import dict_apply, replace_submodules
-from diffusion_policy.model.drifting.drifting_util import compute_drifting_loss
+from diffusion_policy.model.drifting.drifting_util import drift_loss
 
 class DriftingUnetHybridImagePolicy(BaseImagePolicy):
     def __init__(self, 
@@ -31,6 +31,7 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
             temperatures=[0.02, 0.05, 0.2],
             per_timestep_loss=False,
             bc_coeff=0.0,
+            gen_per_label=8,
             **kwargs):
         super().__init__()
 
@@ -143,6 +144,7 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
         self.temperatures = temperatures
         self.per_timestep_loss = per_timestep_loss
         self.bc_coeff = bc_coeff
+        self.gen_per_label = gen_per_label
         self.kwargs = kwargs
 
     def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -182,37 +184,40 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
         nobs = self.normalizer.normalize(batch['obs'])
         nactions = self.normalizer['action'].normalize(batch['action'])
         batch_size = nactions.shape[0]
+        G = self.gen_per_label
 
         this_nobs = dict_apply(nobs, lambda x: x[:,:self.n_obs_steps,...].reshape(-1,*x.shape[2:]))
         nobs_features = self.obs_encoder(this_nobs)
         global_cond = nobs_features.reshape(batch_size, -1)
-        
-        noise = torch.randn(nactions.shape, device=nactions.device)
-        timesteps = torch.zeros((batch_size,), device=nactions.device, dtype=torch.long)
-        pred_actions = self.model(noise, timesteps, global_cond=global_cond)
+
+        # Generate G samples per observation (official: gen_per_label)
+        global_cond_rep = global_cond.repeat_interleave(G, dim=0)  # [B*G, cond_dim]
+        noise = torch.randn(batch_size * G, nactions.shape[1], nactions.shape[2], device=nactions.device)
+        timesteps = torch.zeros((batch_size * G,), device=nactions.device, dtype=torch.long)
+        pred_all = self.model(noise, timesteps, global_cond=global_cond_rep)  # [B*G, T, D]
+        pred_actions = pred_all.reshape(batch_size, G, nactions.shape[1], nactions.shape[2])  # [B, G, T, D]
+
+        R_list = tuple(self.temperatures)
 
         if self.per_timestep_loss:
-            # Loop over timestep positions so kernel attention only compares
-            # actions at the same position (avoids cross-timestep interference).
-            T_horizon = pred_actions.shape[1]
+            T_horizon = nactions.shape[1]
             total_loss = 0
             accumulated_metrics = {}
             for t in range(T_horizon):
-                x_t = pred_actions[:, t, :]   # [B, Da]
-                y_pos_t = nactions[:, t, :]    # [B, Da]
-                y_neg_t = x_t
-                loss_t, metrics_t = compute_drifting_loss(
-                    x_t, y_pos_t, y_neg_t, temperatures=self.temperatures)
-                total_loss += loss_t
-                for k, v in metrics_t.items():
-                    accumulated_metrics[k] = accumulated_metrics.get(k, 0.0) + v / T_horizon
+                gen_t = pred_actions[:, :, t, :]           # [B, G, D]
+                pos_t = nactions[:, t, :].unsqueeze(1)     # [B, 1, D]
+                loss_t, info_t = drift_loss(gen_t, pos_t, R_list=R_list)
+                total_loss = total_loss + loss_t.mean()
+                for k, v in info_t.items():
+                    accumulated_metrics[k] = accumulated_metrics.get(k, 0.0) + v.item() / T_horizon
             loss = total_loss / T_horizon
             all_metrics = accumulated_metrics
         else:
-            x = pred_actions.reshape(batch_size, -1)
-            y_pos = nactions.reshape(batch_size, -1)
-            y_neg = x
-            loss, all_metrics = compute_drifting_loss(x, y_pos, y_neg, temperatures=self.temperatures)
+            gen = pred_actions.reshape(batch_size, G, -1)          # [B, G, T*D]
+            pos = nactions.reshape(batch_size, 1, -1)              # [B, 1, T*D]
+            loss, info = drift_loss(gen, pos, R_list=R_list)
+            loss = loss.mean()
+            all_metrics = {k: v.item() for k, v in info.items()}
 
         if self.bc_coeff > 0:
             bc_loss = torch.nn.functional.mse_loss(pred_actions, nactions)
