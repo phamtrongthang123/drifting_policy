@@ -219,9 +219,5 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
             loss = loss.mean()
             all_metrics = {k: v.item() for k, v in info.items()}
 
-        if self.bc_coeff > 0:
-            bc_loss = torch.nn.functional.mse_loss(pred_actions, nactions)
-            all_metrics['train/bc_loss'] = bc_loss.item()
-            loss = loss + self.bc_coeff * bc_loss
 
         return loss, all_metrics
