@@ -8,6 +8,7 @@
 | 2026-03-03 | 178597 | 4 fixes + per_timestep=FALSE | 750 | 0.47 plateau | 0.0 at all rollouts | per_timestep=false kills learning |
 | 2026-03-03 | 178656 | 5 fixes + per_timestep=TRUE | 861 | 0.239 (declining but slow) | 0.0 at all rollouts | CANCELLED — drifting alone cannot learn obs-conditional |
 | 2026-03-04 | 178684 | 5 fixes + bc_coeff=10.0 | 50 | 0.015 | **0.96** | bc_coeff=10.0 WORKS — matches DDPM (0.96@ep50) exactly |
+| 2026-03-22 | 195490 | official port, bc_coeff=0, gen_per_label=8 | 50 | 0.0025 | **0.98** | FAITHFUL PORT — exceeds 0.90 target, bc_coeff=0 ✅ (job still running, 200ep total) |
 
 ## Can Image (DDPM Baseline) — confirms env/pipeline correct
 

@@ -12,6 +12,8 @@
 
 set -euo pipefail
 
+export TMPDIR="$HOME/.tmp" && mkdir -p "$TMPDIR"
+
 echo "Job started at: $(date)"
 echo "Running on node: $(hostname)"
 echo "Job ID: $SLURM_JOB_ID"
