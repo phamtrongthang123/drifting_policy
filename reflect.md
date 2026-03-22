@@ -4,7 +4,25 @@ Your job is NOT to write code. Your job is to improve the plan document itself s
 ## Budget constraint
 The dumb zone of agent happens after 100k tokens. So the combined size of implementation_plan.md + any spec/design docs must stay under 50k tokens — the other 50k is reserved for the coding agent to actually work. If you cannot get under budget, flag it with an estimate. This constraint drives everything below.
 
-## Goal alignment (do this FIRST)
+## Porting faithfulness (THIS PROJECT'S #1 PRIORITY)
+
+This project is a **1:1 port** of `drifting/drift_loss.py` (JAX) → `diffusion_policy/model/drifting/drifting_util.py` (PyTorch). The goal is exact numerical equivalence, not improvement.
+
+When reviewing code changes, check:
+1. **No "improvements" over the official code.** If the ported code does something differently from `drifting/drift_loss.py`, it's a bug — not a feature. The only acceptable differences are JAX→PyTorch API translations (e.g., `jnp.clip` → `torch.clamp`, `jax.lax.stop_gradient` → `torch.no_grad()`).
+2. **No hyperparameter tuning as a fix.** If the port doesn't work, the answer is fixing the port to match the official code — not adjusting bc_coeff, temperatures, batch size, or learning rate.
+3. **Numerical test is the ground truth.** `tests/test_drift_loss_port.py` must pass (allclose against JAX reference). If training fails but the numerical test passes, the bug is in the call site or elsewhere — not the loss function.
+4. **Flag any creative additions.** If the coding agent added helper functions, extra normalization, or alternative code paths that don't exist in the official code, flag them for removal.
+
+### Definition of done
+The port is complete when the agent can honestly say:
+1. **Every line** of `drifting/drift_loss.py` has a corresponding line in `drifting_util.py` — no omissions, no additions.
+2. `tests/test_drift_loss_port.py` passes — numerical outputs match JAX reference.
+3. A training run has finished (200 epochs, bc_coeff=0) and the score is recorded in SCORES.md.
+
+At that point, **the score is what it is.** If it's below 0.90, that's a real result — report it honestly. Do not add bc_loss, tune hyperparameters, or modify the loss to chase a number. The purpose is to know what the official drifting loss actually achieves on diffusion policy tasks.
+
+## Goal alignment (do this SECOND)
 
 Read `spec.md` — specifically the `# FINAL GOAL` section. Then read `implementation_plan.md` and answer:
 
