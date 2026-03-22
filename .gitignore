@@ -141,4 +141,3 @@ dmypy.json
 slurm_logs
 paper/
 original_diff/
-*.md
