@@ -7,7 +7,7 @@ Replace our hand-written drifting loss with a **faithful PyTorch port of the off
 - Official drifting codebase (JAX): `/home/tp030/drifting_policy/drifting/drift_loss.py`
 - Our current drifting util: `diffusion_policy/model/drifting/drifting_util.py`
 - Policy that calls it: `diffusion_policy/policy/drifting_unet_hybrid_image_policy.py`
-- Original diffusion policy: /home/tp030/drifting_policy/original_diff/diffusion_policy
+- Original diffusion policy: `/home/tp030/drifting_policy/original_diff/diffusion_policy`
 
 ## Constraints
 - **SLURM partitions:** Only use `vgpu` and `agpu` partitions.
@@ -22,18 +22,9 @@ Replace our hand-written drifting loss with a **faithful PyTorch port of the off
   - Before submitting: `sinfo -p agpu,vgpu -N --format="%N %P %G %f %T" | grep -v "0gpu"`
   - **Never wait on pending jobs.** If stuck, cancel and resubmit to a partition with idle nodes.
 - **Max 72 hours per job**
-- **Commit after every meaningful change.** Don't batch unrelated changes. Don't commit checkpoints or large generated files.
+- **Commit after every meaningful change.** Concise messages. Don't commit checkpoints or large generated files.
 
 ## Success Criteria
 1. `tests/test_drift_loss_port.py` passes — numerics match official JAX implementation
 2. can_image `test/mean_score >= 0.90` within 200 epochs with `bc_coeff=0`
 3. No regression on pusht_image (should still get >= 0.78)
-
-
-
-
-## Git Workflow
-- **Commit after every meaningful change** (new script, code modification, config update). Don't batch multiple unrelated changes into one commit.
-- Write concise commit messages describing what changed and why.
-- Commit before starting a new task so work is never lost if the agent crashes.
-- Do NOT commit large generated files (checkpoints, predictions JSONs, plots). Only commit code, configs, and documentation.
