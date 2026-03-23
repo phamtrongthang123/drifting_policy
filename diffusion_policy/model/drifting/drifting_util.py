@@ -2,118 +2,121 @@ import torch
 import torch.nn.functional as F
 
 
-def compute_V(x, y_pos, y_neg, T):
+def _cdist(x, y, eps=1e-8):
+    """Pairwise L2 distance: [B, N, D] x [B, M, D] -> [B, N, M].
+
+    Exact port of official JAX cdist (dot-product formula + eps clamp).
     """
-    Compute the drifting field V based on positive and negative samples.
+    xydot = torch.einsum("bnd,bmd->bnm", x, y)
+    xnorms = torch.einsum("bnd,bnd->bn", x, x)
+    ynorms = torch.einsum("bmd,bmd->bm", y, y)
+    sq_dist = xnorms[:, :, None] + ynorms[:, None, :] - 2 * xydot
+    return torch.sqrt(torch.clamp(sq_dist, min=eps))
 
-    x: [N, D] generated samples
-    y_pos: [N_pos, D] real/positive samples
-    y_neg: [N_neg, D] negative samples (often the same as x)
-    T: temperature (tau)
+
+def drift_loss(gen, fixed_pos, fixed_neg=None, weight_gen=None, weight_pos=None,
+               weight_neg=None, R_list=(0.02, 0.05, 0.2)):
+    """Faithful port of official drifting loss (drifting/drift_loss.py, JAX -> PyTorch).
+
+    Args:
+        gen: [B, C_g, S] generated samples
+        fixed_pos: [B, C_p, S] positive (real) samples
+        fixed_neg: [B, C_n, S] negative samples (optional, None = no explicit negatives)
+        weight_gen: [B, C_g] (optional, default 1)
+        weight_pos: [B, C_p] (optional, default 1)
+        weight_neg: [B, C_n] (optional, default 1)
+        R_list: tuple of temperature values
+    Returns:
+        loss: [B]
+        info: dict with 'scale' and 'loss_{R}' entries
     """
-    N = x.shape[0]
-    N_pos = y_pos.shape[0]
-    N_neg = y_neg.shape[0]
+    B, C_g, S = gen.shape
+    C_p = fixed_pos.shape[1]
 
-    # compute pairwise distance
-    dist_pos = torch.cdist(x, y_pos)  # [N, N_pos]
-    dist_neg = torch.cdist(x, y_neg)  # [N, N_neg]
+    if fixed_neg is None:
+        fixed_neg = gen.new_zeros(B, 0, S)
+    C_n = fixed_neg.shape[1]
 
-    # ignore self (if y_neg is x)
-    # Using a small epsilon to avoid exactly zero distance if not ignoring self
-    if x is y_neg or torch.allclose(x, y_neg):
-        dist_neg = dist_neg + torch.eye(N, device=x.device) * 1e6
+    if weight_gen is None:
+        weight_gen = gen.new_ones(B, C_g)
+    if weight_pos is None:
+        weight_pos = gen.new_ones(B, C_p)
+    if weight_neg is None:
+        weight_neg = gen.new_ones(B, C_n)
 
-    # compute logits
-    logit_pos = -dist_pos / T
-    logit_neg = -dist_neg / T
+    gen = gen.float()
+    fixed_pos = fixed_pos.float()
+    fixed_neg = fixed_neg.float()
+    weight_gen = weight_gen.float()
+    weight_pos = weight_pos.float()
+    weight_neg = weight_neg.float()
 
-    # concat for normalization
-    logit = torch.cat([logit_pos, logit_neg], dim=1)  # [N, N_pos + N_neg]
+    old_gen = gen.detach()
+    targets = torch.cat([old_gen, fixed_neg, fixed_pos], dim=1)
+    targets_w = torch.cat([weight_gen, weight_neg, weight_pos], dim=1)
 
-    # normalize along both dimensions (A_row and A_col in paper)
-    A_row = F.softmax(logit, dim=-1)
-    A_col = F.softmax(logit, dim=-2)
-    A = torch.sqrt(A_row * A_col)
+    # Goal computation (no gradients)
+    with torch.no_grad():
+        info = {}
+        dist = _cdist(old_gen, targets)
+        weighted_dist = dist * targets_w[:, None, :]
+        scale = weighted_dist.mean() / targets_w.mean()
+        info["scale"] = scale
 
-    # back to [N, N_pos] and [N, N_neg]
-    A_pos, A_neg = torch.split(A, [N_pos, N_neg], dim=1)
+        scale_inputs = torch.clamp(scale / (S ** 0.5), min=1e-3)
+        old_gen_scaled = old_gen / scale_inputs
+        targets_scaled = targets / scale_inputs
 
-    # compute the weights (W_pos, W_neg in paper)
-    W_pos = A_pos  # [N, N_pos]
-    W_neg = A_neg  # [N, N_neg]
+        dist_normed = dist / torch.clamp(scale, min=1e-3)
 
-    # W_pos *= A_neg.sum(dim=1,keepdim=True)
-    # W_neg *= A_pos.sum(dim=1,keepdim=True)
-    W_pos = W_pos * A_neg.sum(dim=1, keepdim=True)
-    W_neg = W_neg * A_pos.sum(dim=1, keepdim=True)
+        # Mask self-connections for gen block
+        mask_val = 100.0
+        diag_mask = torch.eye(C_g, device=gen.device, dtype=gen.dtype)
+        block_mask = F.pad(diag_mask, (0, C_n + C_p))
+        block_mask = block_mask.unsqueeze(0)
+        dist_normed = dist_normed + block_mask * mask_val
 
-    drift_pos = W_pos @ y_pos  # [N, D]
-    drift_neg = W_neg @ y_neg  # [N, D]
+        # Force loop over temperatures
+        force_across_R = torch.zeros_like(old_gen_scaled)
 
-    V = drift_pos - drift_neg
-    
-    # Debug prints for V computation
-    print(f"  [compute_V] drift_pos mean: {drift_pos.mean().item():.6f}, std: {drift_pos.std().item():.6f}")
-    print(f"  [compute_V] drift_neg mean: {drift_neg.mean().item():.6f}, std: {drift_neg.std().item():.6f}")
-    print(f"  [compute_V] V mean: {V.mean().item():.6f}, max: {V.max().item():.6f}, min: {V.min().item():.6f}")
-    return V
+        for R in R_list:
+            logits = -dist_normed / R
 
+            affinity = torch.softmax(logits, dim=-1)
+            aff_transpose = torch.softmax(logits, dim=-2)
+            affinity = torch.sqrt(torch.clamp(affinity * aff_transpose, min=1e-6))
 
-def compute_drifting_loss(x, y_pos, y_neg, temperatures=[0.05]):
-    """
-    Compute aggregated drifting loss over multiple temperatures.
-    """
-    B, D = x.shape
+            affinity = affinity * targets_w[:, None, :]
 
-    # Flatten if needed, but here we expect [B, D] where D is the flattened dimension
+            split_idx = C_g + C_n
+            aff_neg = affinity[:, :, :split_idx]
+            aff_pos = affinity[:, :, split_idx:]
 
-    # Feature normalization as per Appendix A.8
-    # "Intuitively, we want the average distance to be sqrt(C_j)"
-    # dist_j(x, y) = ||phi_j(x) - phi_j(y)|| / S_j
-    # S_j = 1/sqrt(C_j) * E[||phi_j(x) - phi_j(y)||]
+            sum_pos = aff_pos.sum(dim=-1, keepdim=True)
+            r_coeff_neg = -aff_neg * sum_pos
+            sum_neg = aff_neg.sum(dim=-1, keepdim=True)
+            r_coeff_pos = aff_pos * sum_neg
 
-    # Concatenate all samples for global distance normalization
-    all_samples = torch.cat([x, y_pos], dim=0)
-    pairwise_dist = torch.cdist(all_samples, all_samples)
-    S_j = torch.mean(pairwise_dist)/ (D ** 0.5 + 1e-6)
-    
-    print(f"[Drift Loss] Feature Normalization Scale S_j: {S_j.item():.6f}")
+            R_coeff = torch.cat([r_coeff_neg, r_coeff_pos], dim=2)
 
-    # Normalized samples
-    x_norm = x / (S_j.detach() + 1e-6)
-    y_pos_norm = y_pos / (S_j.detach() + 1e-6)
-    y_neg_norm = y_neg / (S_j.detach() + 1e-6)
-    
-    print(f"[Drift Loss] x_norm mean: {x_norm.mean().item():.6f}")
+            total_force_R = torch.einsum("biy,byx->bix", R_coeff, targets_scaled)
 
-    metrics = {
-        "train/drifting_S_j": S_j.item()
-    }
+            total_coeffs = R_coeff.sum(dim=-1)
+            total_force_R = total_force_R - total_coeffs.unsqueeze(-1) * old_gen_scaled
 
-    V_total = torch.zeros_like(x)
-    for T in temperatures:
-        print(f"[Drift Loss] Processing Temperature T={T}")
-        # Note: Paper uses T * sqrt(D) for normalized features
-        scaled_T = T * (D ** 0.5)
-        V_t = compute_V(x_norm, y_pos_norm, y_neg_norm, scaled_T)
-        
-        # Drift normalization as per Appendix A.8
-        # lambda_j = sqrt( E[ ||V_j||^2 / D ] )
-        lambda_j = torch.sqrt(torch.mean(torch.sum(V_t**2, dim=-1)) / D + 1e-6)
-        
-        print(f"[Drift Loss] T={T}: lambda_j (Drift Magnitude - TRACK THIS FOR CONVERGENCE): {lambda_j.item():.6f}")
-        metrics[f"train/drifting_lambda_T{T}"] = lambda_j.item()
-        
-        V_t = V_t / (lambda_j.detach() + 1e-6)
-        V_total = V_total + V_t
+            f_norm_val = (total_force_R ** 2).mean()
+            info[f"loss_{R}"] = f_norm_val
 
-    print(f"[Drift Loss] V_total mean: {V_total.mean().item():.6f}, std: {V_total.std().item():.6f}")
+            force_scale = torch.sqrt(torch.clamp(f_norm_val, min=1e-8))
+            force_across_R = force_across_R + total_force_R / force_scale
 
-    # MSE loss: MSE(phi_j(x) - sg(phi_j(x) + V_j))
-    # Note: drifting utility works on normalized features.
-    target = (x_norm + V_total).detach()
-    loss = F.mse_loss(x_norm, target)
-    print(f"[Drift Loss] Final Loss: {loss.item():.6f}")
+        goal_scaled = old_gen_scaled + force_across_R
 
-    return loss, metrics
+    # Loss with gradients through gen
+    gen_scaled = gen / scale_inputs.detach()
+    diff = gen_scaled - goal_scaled.detach()
+    loss = (diff ** 2).mean(dim=(-1, -2))
+
+    info = {k: v.mean() for k, v in info.items()}
+
+    return loss, info

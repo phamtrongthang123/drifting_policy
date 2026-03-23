@@ -8,7 +8,7 @@ checkpoint:
     mode: max
     monitor_key: test_mean_score
 dataloader:
-  batch_size: 512
+  batch_size: 64
   num_workers: 8
   persistent_workers: false
   pin_memory: true
@@ -86,6 +86,8 @@ policy:
         - 96
         - 96
         type: rgb
+  gen_per_label: 8
+  per_timestep_loss: true
   temperatures:
   - 0.02
   - 0.05
@@ -160,7 +162,7 @@ training:
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 3050
+  num_epochs: 300
   resume: true
   rollout_every: 50
   sample_every: 5

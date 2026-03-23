@@ -3,12 +3,12 @@ checkpoint:
   save_last_ckpt: true
   save_last_snapshot: false
   topk:
-    format_str: epoch={epoch:04d}-val_loss={val_loss:.3f}.ckpt
+    format_str: epoch={epoch:04d}-test_mean_score={test_mean_score:.3f}.ckpt
     k: 5
-    mode: min
-    monitor_key: val_loss
+    mode: max
+    monitor_key: test_mean_score
 dataloader:
-  batch_size: 512
+  batch_size: 256
   num_workers: 8
   persistent_workers: false
   pin_memory: true
@@ -100,6 +100,7 @@ policy:
         shape:
         - 2
         type: low_dim
+  per_timestep_loss: true
   temperatures:
   - 0.02
   - 0.05

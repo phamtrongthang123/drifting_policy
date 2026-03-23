@@ -8,29 +8,24 @@ All other policies (IBC, BET), real-robot code, and unrelated tasks have been st
 
 Numbers are **mean success rate** (higher is better). Drifting Policy uses **NFE=1** (single forward pass at inference).
 
-| Task | Setting | Diffusion Policy (NFE=100) | **Drifting Policy (paper)** | Our status |
+The drifting loss is a **faithful line-by-line port** of the [official JAX implementation](https://lambertae.github.io/projects/drifting/), verified by numerical tests (7/7 pass, rtol=2e-4 vs JAX). Key config: `batch_size=64`, `gen_per_label=8`.
+
+| Task | Setting | Diffusion Policy (NFE=100) | **Drifting Policy (paper)** | Our result |
 |------|---------|---------------------------|----------------------------|------------|
-| **PushT** | Visual | 0.84 | **0.86** | ~0.78 (training) |
-| **Lift** | Visual | 1.00 | **1.00** | **0.92** (best epoch 100, batch 256) |
-| **Can** | Visual | 0.97 | **0.99** | cannot learn (0.02 at epoch 50, 0 at 100/150) |
-| **ToolHang** | Visual | 0.73 | 0.67 | diverging (debugging) |
+| **Can** | Visual | 0.97 | **0.99** | **0.98** (epoch 50) ✅ |
+| **PushT** | Visual | 0.84 | **0.86** | **0.803** (epoch 50) |
+| **Lift** | Visual | 1.00 | **1.00** | not yet tested with faithful port |
+| **ToolHang** | Visual | 0.73 | 0.67 | not yet tested with faithful port |
 
-> Note: PushT is currently ~0.78 at batch size 256 (target 0.86). Reaching the paper score likely requires further hyperparameter tuning beyond what the paper specifies.
->
-> Note: Lift peaked at 0.92 at epoch 100 (batch size 256) then declined to 0.78 by epoch 150. Best checkpoint: `epoch=0100-test_mean_score=0.920.ckpt`. Paper target is 1.00.
->
-> Note: Can image cannot learn — scored 0.02 at epoch 50, 0 at epochs 100 and 150. Debugging ongoing (normalization fix applied, per-timestep loss being tested). ToolHang lowdim diverges (val_loss 3.0→6.0), also under investigation.
 
-### Not yet implemented (require a lowdim policy/workspace)
+### Low-dim (state-based) tasks
 
-| Task | Setting | Diffusion Policy | Drifting Policy (paper) |
-|------|---------|-----------------|------------------------|
-| Lift | State | 0.98 | **1.00** |
-| Can | State | 0.96 | **0.98** |
-| ToolHang | State | 0.30 | **0.38** |
-| PushT | State | **0.91** | 0.86 |
-| BlockPush | Phase 1 / 2 | 0.36 / 0.11 | **0.56 / 0.16** |
-| Kitchen | Phase 1–4 | 1.00/1.00/1.00/**0.99** | **1.00/1.00**/0.99/0.96 |
+| Task | Setting | Diffusion Policy | Drifting Policy (paper) | Our status |
+|------|---------|-----------------|------------------------|------------|
+| **PushT** | State | **0.91** | 0.86 | not yet tested with faithful port |
+| Can | State | 0.96 | **0.98** | not yet tested with faithful port |
+| ToolHang | State | 0.30 | **0.38** | not yet tested with faithful port |
+| Lift | State | 0.98 | **1.00** | not yet tested with faithful port |
 
 ## Installation
 
@@ -127,10 +122,11 @@ Results are written to `data/eval_output/eval_log.json`.
 .
 ├── train.py                              # Training entry point
 ├── eval.py                               # Evaluation entry point
-├── drifting_pusht_image.yaml             # PushT config
-├── drifting_lift_image.yaml              # Lift config
-├── drifting_can_image.yaml               # Can config
-├── drifting_tool_hang_image.yaml         # ToolHang config
+├── drifting_pusht_image.yaml             # PushT visual config
+├── drifting_lift_image.yaml              # Lift visual config
+├── drifting_can_image.yaml               # Can visual config
+├── drifting_tool_hang_image.yaml         # ToolHang visual config
+├── drifting_*_lowdim.yaml               # Low-dim (state) configs
 ├── setup.py                              # Package installer
 ├── conda_environment.yaml                # Conda env spec
 ├── scripts/
@@ -155,10 +151,13 @@ Results are written to `data/eval_output/eval_log.json`.
     └── config/task/                      # Task configs
 ```
 
-## Quick explanation of the meat of my implementation
+## Implementation notes
 
-See [drifting_model_debug.md](drifting_model_debug.md) for notes on understanding my implementation on drifting model.
-But mostly diffusion_policy/model/drifting/drifting_util.py is the key here. I faithfully "copied" the pseudo code in the paper out. This one is tested with the toy experiment in the provided [colab notebook](https://lambertae.github.io/projects/drifting/) so I am 99% confidence that it is correct.    
+The core drifting loss lives in `diffusion_policy/model/drifting/drifting_util.py`. It is a **line-by-line port** of the official JAX implementation (`drifting/drift_loss.py`), verified by `tests/test_drift_loss_port.py` (7 numerical tests, rtol=2e-4 vs JAX reference).
+
+Key details:
+- **`gen_per_label=8`**: multiple noise samples per observation (matching official `train.py`). With `gen_per_label=1`, the self-mask zeros the drift force.
+- **Dot-product cdist** (not `torch.cdist`): matches the official kernel exactly.
 
 ## Acknowledgements
 
