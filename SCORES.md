@@ -38,7 +38,7 @@ All 6 untested configs submitted. Scores will be recorded here as checkpoints ar
 | Task | Best Score | Epoch | Notes |
 |------|-----------|-------|-------|
 | lift_image | **1.000** | 50 | faithful port, gen_per_label=8 (job 195504) ✅ matches paper |
-| tool_hang_image | **0.000** | 0 | faithful port, gen_per_label=8 (job 195514, running) |
+| tool_hang_image | **0.260** | 50 | faithful port, gen_per_label=8 (job 195514, running) |
 | can_lowdim | **0.980** | 50 | faithful port, gen_per_label=8 (job 195505) ✅ matches paper |
 | lift_lowdim | **1.000** | 50 | faithful port, gen_per_label=8 (job 195501) ✅ matches paper |
 | pusht_lowdim | **0.871** | 50 | faithful port, gen_per_label=8 (job 195506) ✅ exceeds paper (0.86) |
@@ -52,5 +52,5 @@ Paper targets (Drifting column):
 
 | Task | Job ID | Epoch | p1/p_1 | p2/p_2 | p3/p_3 | p4/p_4 | mean_score | Notes |
 |------|--------|-------|--------|--------|--------|--------|------------|-------|
-| blockpush_lowdim | 195521 | — | — | — | — | — | — | running |
-| kitchen_lowdim | 195523 | — | — | — | — | — | — | running |
+| blockpush_lowdim | 195524 | 525 | 0.30 | 0.12 | — | — | 0.129 | gen_per_label=8 plateaued. CANCELLED. Resubmitting with gen_per_label=32. |
+| kitchen_lowdim | 195523 | 87 | **1.00** | **1.00** | **1.00** | **1.00** | 0.569 | ✅ exceeds all paper targets. Best ep43: p4=1.00. CANCELLED. |

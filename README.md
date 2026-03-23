@@ -15,7 +15,7 @@ The drifting loss is a **faithful line-by-line port** of the [official JAX imple
 | **Can** | Visual | 0.97 | **0.99** | **0.98** (epoch 50) ✅ |
 | **PushT** | Visual | 0.84 | **0.86** | **0.86** (epoch 100) ✅ |
 | **Lift** | Visual | 1.00 | **1.00** | **1.00** (epoch 50) ✅ |
-| **ToolHang** | Visual | 0.73 | 0.67 | 0.00 (epoch 0, running) |
+| **ToolHang** | Visual | 0.73 | 0.67 | 0.26 (epoch 50, running) |
 
 
 ### Low-dim (state-based) tasks
@@ -31,12 +31,12 @@ The drifting loss is a **faithful line-by-line port** of the [official JAX imple
 
 | Task | Phase | Diffusion Policy | Drifting Policy (paper) | Our status |
 |------|-------|-----------------|------------------------|------------|
-| BlockPush | Phase 1 (p1) | 0.36 | **0.56** | running |
-| BlockPush | Phase 2 (p2) | 0.11 | **0.16** | running |
-| Kitchen | Phase 1 (p_1) | 1.00 | **1.00** | running |
-| Kitchen | Phase 2 (p_2) | 1.00 | **1.00** | running |
-| Kitchen | Phase 3 (p_3) | 1.00 | **0.99** | running |
-| Kitchen | Phase 4 (p_4) | 0.99 | **0.96** | running |
+| BlockPush | Phase 1 (p1) | 0.36 | **0.56** | 0.30 (epoch 190, resubmitting) |
+| BlockPush | Phase 2 (p2) | 0.11 | **0.16** | 0.12 (epoch 190, resubmitting) |
+| Kitchen | Phase 1 (p_1) | 1.00 | **1.00** | **1.00** (epoch 21) ✅ |
+| Kitchen | Phase 2 (p_2) | 1.00 | **1.00** | **1.00** (epoch 21) ✅ |
+| Kitchen | Phase 3 (p_3) | 1.00 | **0.99** | **1.00** (epoch 21) ✅ |
+| Kitchen | Phase 4 (p_4) | 0.99 | **0.96** | **1.00** (epoch 43) ✅ |
 
 ## Installation
 
