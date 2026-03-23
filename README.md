@@ -27,6 +27,17 @@ The drifting loss is a **faithful line-by-line port** of the [official JAX imple
 | ToolHang | State | 0.30 | **0.38** | **0.84** (epoch 50) ✅ |
 | Lift | State | 0.98 | **1.00** | **1.00** (epoch 50) ✅ |
 
+### Multi-stage tasks (state observation)
+
+| Task | Phase | Diffusion Policy | Drifting Policy (paper) | Our status |
+|------|-------|-----------------|------------------------|------------|
+| BlockPush | Phase 1 (p1) | 0.36 | **0.56** | running |
+| BlockPush | Phase 2 (p2) | 0.11 | **0.16** | running |
+| Kitchen | Phase 1 (p_1) | 1.00 | **1.00** | running |
+| Kitchen | Phase 2 (p_2) | 1.00 | **1.00** | running |
+| Kitchen | Phase 3 (p_3) | 1.00 | **0.99** | running |
+| Kitchen | Phase 4 (p_4) | 0.99 | **0.96** | running |
+
 ## Installation
 
 **Prerequisites** (Ubuntu 20.04, Nvidia GPU):

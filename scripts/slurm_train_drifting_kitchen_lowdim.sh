@@ -6,9 +6,7 @@
 #SBATCH --cpus-per-task=24
 #SBATCH --time=2-00:00:00
 #SBATCH --output=slurm_logs/train_drifting_kitchen_lowdim_%j.out
-#SBATCH --partition=agpu
-#SBATCH --constraint=1a100
-#SBATCH --exclude=c2110
+#SBATCH --partition=vgpu
 
 set -euo pipefail
 

@@ -43,3 +43,14 @@ All 6 untested configs submitted. Scores will be recorded here as checkpoints ar
 | lift_lowdim | **1.000** | 50 | faithful port, gen_per_label=8 (job 195501) ✅ matches paper |
 | pusht_lowdim | **0.871** | 50 | faithful port, gen_per_label=8 (job 195506) ✅ exceeds paper (0.86) |
 | tool_hang_lowdim | **0.840** | 50 | faithful port, gen_per_label=8 (job 195515) ✅ far exceeds paper (0.38) |
+
+## Multi-Stage Tasks (State Observation)
+
+Paper targets (Drifting column):
+- BlockPush: p1=0.56, p2=0.16
+- Kitchen: p_1=1.00, p_2=1.00, p_3=0.99, p_4=0.96
+
+| Task | Job ID | Epoch | p1/p_1 | p2/p_2 | p3/p_3 | p4/p_4 | mean_score | Notes |
+|------|--------|-------|--------|--------|--------|--------|------------|-------|
+| blockpush_lowdim | 195521 | — | — | — | — | — | — | running |
+| kitchen_lowdim | 195523 | — | — | — | — | — | — | running |

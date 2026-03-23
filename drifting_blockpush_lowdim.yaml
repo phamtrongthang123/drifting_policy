@@ -120,7 +120,7 @@ training:
   max_val_steps: null
   num_epochs: 300
   resume: true
-  rollout_every: 50
+  rollout_every: 1
   sample_every: 5
   seed: 42
   tqdm_interval_sec: 1.0
