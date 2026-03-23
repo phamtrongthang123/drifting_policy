@@ -13,19 +13,19 @@ The drifting loss is a **faithful line-by-line port** of the [official JAX imple
 | Task | Setting | Diffusion Policy (NFE=100) | **Drifting Policy (paper)** | Our result |
 |------|---------|---------------------------|----------------------------|------------|
 | **Can** | Visual | 0.97 | **0.99** | **0.98** (epoch 50) ✅ |
-| **PushT** | Visual | 0.84 | **0.86** | **0.86** ✅ |
-| **Lift** | Visual | 1.00 | **1.00** | not yet tested with faithful port |
-| **ToolHang** | Visual | 0.73 | 0.67 | not yet tested with faithful port |
+| **PushT** | Visual | 0.84 | **0.86** | **0.86** (epoch 100) ✅ |
+| **Lift** | Visual | 1.00 | **1.00** | **1.00** (epoch 50) ✅ |
+| **ToolHang** | Visual | 0.73 | 0.67 | 0.00 (epoch 0, running) |
 
 
 ### Low-dim (state-based) tasks
 
 | Task | Setting | Diffusion Policy | Drifting Policy (paper) | Our status |
 |------|---------|-----------------|------------------------|------------|
-| **PushT** | State | **0.91** | 0.86 | not yet tested with faithful port |
-| Can | State | 0.96 | **0.98** | not yet tested with faithful port |
-| ToolHang | State | 0.30 | **0.38** | not yet tested with faithful port |
-| Lift | State | 0.98 | **1.00** | not yet tested with faithful port |
+| **PushT** | State | **0.91** | 0.86 | **0.871** (epoch 50) ✅ |
+| Can | State | 0.96 | **0.98** | **0.98** (epoch 50) ✅ |
+| ToolHang | State | 0.30 | **0.38** | **0.84** (epoch 50) ✅ |
+| Lift | State | 0.98 | **1.00** | **1.00** (epoch 50) ✅ |
 
 ## Installation
 
@@ -43,6 +43,47 @@ conda activate robodiff
 Install the package (needed for `diffusion_policy.*` imports):
 ```bash
 pip install -e .
+```
+
+### MuJoCo and robosuite 
+
+PushT only needs `pygame` (already in conda env). The robomimic tasks need MuJoCo 2.1.0 + `mujoco-py` + a specific robosuite fork.
+
+**1. MuJoCo 2.1.0** (not the newer `mujoco` pip package — we need the old `mujoco_py` bindings):
+```bash
+mkdir -p ~/.mujoco
+wget https://github.com/deepmind/mujoco/releases/download/2.1.0/mujoco210-linux-x86_64.tar.gz
+tar -xzf mujoco210-linux-x86_64.tar.gz -C ~/.mujoco/
+rm mujoco210-linux-x86_64.tar.gz
+# -> ~/.mujoco/mujoco210/
+```
+
+Add to your `~/.bashrc` (or SLURM scripts):
+```bash
+export LD_LIBRARY_PATH=$HOME/.mujoco/mujoco210/bin:$LD_LIBRARY_PATH
+export MUJOCO_PY_MUJOCO_PATH=$HOME/.mujoco/mujoco210
+export MUJOCO_GL=egl   # for headless GPU rendering
+```
+
+**2. mujoco-py** (builds Cython extensions on first import):
+```bash
+pip install free-mujoco-py==2.1.6
+```
+
+**3. robosuite** — must use the `cheng-chi/robosuite` fork at the `offline_study` branch. This fork has ToolHang support and is compatible with `mujoco_py`. Do **not** use `robosuite>=1.4` (uses new mujoco bindings, breaks EGL rendering on clusters).
+```bash
+pip install robosuite@https://github.com/cheng-chi/robosuite/archive/277ab9588ad7a4f4b55cf75508b44aa67ec171f0.tar.gz
+```
+
+**4. robomimic** (dataset loading):
+```bash
+pip install robomimic==0.2.0
+```
+
+Verify the install:
+```bash
+python -c "import mujoco_py; import robosuite; print(f'mujoco_py={mujoco_py.__version__}, robosuite={robosuite.__version__}')"
+# Expected: mujoco_py=2.0.2.13, robosuite=1.2.0
 ```
 
 ## Data
