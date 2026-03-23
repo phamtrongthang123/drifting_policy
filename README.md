@@ -4,7 +4,7 @@ A minimal fork of [Diffusion Policy](https://github.com/real-stanford/diffusion_
 [Drifting Model in Generative Modeling via Drifting](https://lambertae.github.io/projects/drifting/) on simulated robotic control tasks.
 All other policies (IBC, BET), real-robot code, and unrelated tasks have been stripped out.
 
-## Paper targets (Table 3) vs current results
+## Paper targets (Table 7) vs current results
 
 Numbers are **mean success rate** (higher is better). Drifting Policy uses **NFE=1** (single forward pass at inference).
 
