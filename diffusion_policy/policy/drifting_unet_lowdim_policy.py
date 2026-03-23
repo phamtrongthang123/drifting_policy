@@ -3,7 +3,7 @@ import torch
 from diffusion_policy.model.common.normalizer import LinearNormalizer
 from diffusion_policy.policy.base_lowdim_policy import BaseLowdimPolicy
 from diffusion_policy.model.diffusion.conditional_unet1d import ConditionalUnet1D
-from diffusion_policy.model.drifting.drifting_util import compute_drifting_loss
+from diffusion_policy.model.drifting.drifting_util import drift_loss
 
 class DriftingUnetLowdimPolicy(BaseLowdimPolicy):
     def __init__(self,
@@ -16,6 +16,7 @@ class DriftingUnetLowdimPolicy(BaseLowdimPolicy):
             obs_as_global_cond=True,
             temperatures=[0.02, 0.05, 0.2],
             per_timestep_loss=False,
+            gen_per_label=8,
             **kwargs):
         super().__init__()
         assert obs_as_global_cond
@@ -29,6 +30,7 @@ class DriftingUnetLowdimPolicy(BaseLowdimPolicy):
         self.obs_as_global_cond = obs_as_global_cond
         self.temperatures = temperatures
         self.per_timestep_loss = per_timestep_loss
+        self.gen_per_label = gen_per_label
         self.kwargs = kwargs
 
     def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
@@ -67,33 +69,37 @@ class DriftingUnetLowdimPolicy(BaseLowdimPolicy):
         nobs = nbatch['obs']
         nactions = nbatch['action']
         batch_size = nactions.shape[0]
+        G = self.gen_per_label
 
         global_cond = nobs[:,:self.n_obs_steps].reshape(batch_size, -1)
 
-        noise = torch.randn(nactions.shape, device=nactions.device)
-        timesteps = torch.zeros((batch_size,), device=nactions.device, dtype=torch.long)
-        pred_actions = self.model(noise, timesteps, global_cond=global_cond)
+        # Generate G samples per observation (official: gen_per_label)
+        global_cond_rep = global_cond.repeat_interleave(G, dim=0)  # [B*G, cond_dim]
+        noise = torch.randn(batch_size * G, nactions.shape[1], nactions.shape[2], device=nactions.device)
+        timesteps = torch.zeros((batch_size * G,), device=nactions.device, dtype=torch.long)
+        pred_all = self.model(noise, timesteps, global_cond=global_cond_rep)  # [B*G, T, D]
+        pred_actions = pred_all.reshape(batch_size, G, nactions.shape[1], nactions.shape[2])  # [B, G, T, D]
+
+        R_list = tuple(self.temperatures)
 
         if self.per_timestep_loss:
-            # Loop over timestep positions so kernel attention only compares
-            # actions at the same position (avoids cross-timestep interference).
-            T_horizon = pred_actions.shape[1]
+            T_horizon = nactions.shape[1]
             total_loss = 0
-            all_metrics = {}
+            accumulated_metrics = {}
             for t in range(T_horizon):
-                x_t = pred_actions[:, t, :]   # [B, Da]
-                y_pos_t = nactions[:, t, :]    # [B, Da]
-                y_neg_t = x_t
-                loss_t, metrics_t = compute_drifting_loss(
-                    x_t, y_pos_t, y_neg_t, temperatures=self.temperatures)
-                total_loss += loss_t
-                if t == 0:
-                    all_metrics = metrics_t
+                gen_t = pred_actions[:, :, t, :]           # [B, G, D]
+                pos_t = nactions[:, t, :].unsqueeze(1)     # [B, 1, D]
+                loss_t, info_t = drift_loss(gen_t, pos_t, R_list=R_list)
+                total_loss = total_loss + loss_t.mean()
+                for k, v in info_t.items():
+                    accumulated_metrics[k] = accumulated_metrics.get(k, 0.0) + v.item() / T_horizon
             loss = total_loss / T_horizon
-            return loss, all_metrics
+            all_metrics = accumulated_metrics
         else:
-            x = pred_actions.reshape(batch_size, -1)
-            y_pos = nactions.reshape(batch_size, -1)
-            y_neg = x
-            loss, metrics = compute_drifting_loss(x, y_pos, y_neg, temperatures=self.temperatures)
-            return loss, metrics
+            gen = pred_actions.reshape(batch_size, G, -1)          # [B, G, T*D]
+            pos = nactions.reshape(batch_size, 1, -1)              # [B, 1, T*D]
+            loss, info = drift_loss(gen, pos, R_list=R_list)
+            loss = loss.mean()
+            all_metrics = {k: v.item() for k, v in info.items()}
+
+        return loss, all_metrics
