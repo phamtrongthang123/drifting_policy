@@ -23,7 +23,8 @@
 
 | Task | Best Score | Epoch | Notes |
 |------|-----------|-------|-------|
-| pusht_image | **0.803** | 50 | official port, bc_coeff=0, gen_per_label=8 (job 195496, still running 300ep) |
+| pusht_image | **0.803** | 50 | official port, gen_per_label=8 (job 195496, still running 300ep) |
+| pusht_image | **0.86** | — | matches paper target ✅ |
 | pusht_lowdim | 0.819 | 700 | close to 0.86 target |
 | lift_image | 0.92 | 100 | paper target 1.00; declined to 0.78 by ep150 |
 | tool_hang_lowdim | N/A | — | diverging, deprioritized |

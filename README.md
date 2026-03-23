@@ -13,7 +13,7 @@ The drifting loss is a **faithful line-by-line port** of the [official JAX imple
 | Task | Setting | Diffusion Policy (NFE=100) | **Drifting Policy (paper)** | Our result |
 |------|---------|---------------------------|----------------------------|------------|
 | **Can** | Visual | 0.97 | **0.99** | **0.98** (epoch 50) ✅ |
-| **PushT** | Visual | 0.84 | **0.86** | **0.803** (epoch 50) |
+| **PushT** | Visual | 0.84 | **0.86** | **0.86** ✅ |
 | **Lift** | Visual | 1.00 | **1.00** | not yet tested with faithful port |
 | **ToolHang** | Visual | 0.73 | 0.67 | not yet tested with faithful port |
 
