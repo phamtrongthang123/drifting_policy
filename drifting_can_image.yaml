@@ -101,7 +101,6 @@ policy:
         - 2
         type: low_dim
   per_timestep_loss: true
-  bc_coeff: 0.0
   gen_per_label: 8
   temperatures:
   - 0.02

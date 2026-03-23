@@ -101,7 +101,6 @@ policy:
         - 2
         type: low_dim
   per_timestep_loss: true
-  bc_coeff: 10.0
   temperatures:
   - 0.02
   - 0.05

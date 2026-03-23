@@ -30,7 +30,6 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
             eval_fixed_crop=False,
             temperatures=[0.02, 0.05, 0.2],
             per_timestep_loss=False,
-            bc_coeff=0.0,
             gen_per_label=8,
             **kwargs):
         super().__init__()
@@ -143,7 +142,6 @@ class DriftingUnetHybridImagePolicy(BaseImagePolicy):
         self.obs_as_global_cond = obs_as_global_cond
         self.temperatures = temperatures
         self.per_timestep_loss = per_timestep_loss
-        self.bc_coeff = bc_coeff
         self.gen_per_label = gen_per_label
         self.kwargs = kwargs
 

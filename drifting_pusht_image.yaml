@@ -86,7 +86,6 @@ policy:
         - 96
         - 96
         type: rgb
-  bc_coeff: 0.0
   gen_per_label: 8
   per_timestep_loss: true
   temperatures:
