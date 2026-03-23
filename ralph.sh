@@ -37,8 +37,11 @@ while true; do
         continue
     fi
 
-    if [ "$count" -ge 6 ]; then
-        echo "Reached $count loops, stopping." | tee -a "$LOGFILE"
+    # Stop when all 6 remaining tasks have scores in SCORES.md
+    DONE_COUNT=$(grep -cE '(lift_image|tool_hang_image|can_lowdim|lift_lowdim|pusht_lowdim|tool_hang_lowdim).*faithful port' SCORES.md 2>/dev/null || echo 0)
+
+    if [ "$count" -ge 30 ]; then
+        echo "Reached $count loops, stopping. ($DONE_COUNT/6 tasks scored)" | tee -a "$LOGFILE"
         exit 0
     fi
 

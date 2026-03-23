@@ -8,7 +8,7 @@ checkpoint:
     mode: max
     monitor_key: test_mean_score
 dataloader:
-  batch_size: 256
+  batch_size: 64
   num_workers: 8
   persistent_workers: false
   pin_memory: true
@@ -100,6 +100,7 @@ policy:
         shape:
         - 2
         type: low_dim
+  gen_per_label: 8
   per_timestep_loss: true
   temperatures:
   - 0.02
