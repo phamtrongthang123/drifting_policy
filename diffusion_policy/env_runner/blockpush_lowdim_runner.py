@@ -12,7 +12,7 @@ from diffusion_policy.gym_util.async_vector_env import AsyncVectorEnv
 from diffusion_policy.gym_util.sync_vector_env import SyncVectorEnv
 from diffusion_policy.gym_util.multistep_wrapper import MultiStepWrapper
 from diffusion_policy.gym_util.video_recording_wrapper import VideoRecordingWrapper, VideoRecorder
-from gym.wrappers import FlattenObservation
+from diffusion_policy.gym_util.dict_to_flat_wrapper import DictToFlatWrapper
 
 from diffusion_policy.policy.base_lowdim_policy import BaseLowdimPolicy
 from diffusion_policy.common.pytorch_util import dict_apply
@@ -49,7 +49,7 @@ class BlockPushLowdimRunner(BaseLowdimRunner):
         def env_fn():
             return MultiStepWrapper(
                 VideoRecordingWrapper(
-                    FlattenObservation(
+                    DictToFlatWrapper(
                         BlockPushMultimodal(
                             control_frequency=task_fps,
                             shared_memory=False,

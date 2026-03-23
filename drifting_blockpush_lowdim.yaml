@@ -118,9 +118,9 @@ training:
   lr_warmup_steps: 500
   max_train_steps: null
   max_val_steps: null
-  num_epochs: 300
+  num_epochs: 5000
   resume: true
-  rollout_every: 1
+  rollout_every: 10
   sample_every: 5
   seed: 42
   tqdm_interval_sec: 1.0
