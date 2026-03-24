@@ -15,7 +15,7 @@ The drifting loss is a **faithful line-by-line port** of the [official JAX imple
 | **Can** | Visual | 0.97 | **0.99** | **0.98** (epoch 50) ✅ |
 | **PushT** | Visual | 0.84 | **0.86** | **0.86** (epoch 100) ✅ |
 | **Lift** | Visual | 1.00 | **1.00** | **1.00** (epoch 50) ✅ |
-| **ToolHang** | Visual | 0.73 | 0.67 | 0.26 (epoch 50, running) |
+| **ToolHang** | Visual | 0.73 | 0.67 | **0.74** (epoch 25, gen_per_label=4) ✅ |
 
 
 ### Low-dim (state-based) tasks

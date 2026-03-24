@@ -38,7 +38,12 @@ All 6 untested configs submitted. Scores will be recorded here as checkpoints ar
 | Task | Best Score | Epoch | Notes |
 |------|-----------|-------|-------|
 | lift_image | **1.000** | 50 | faithful port, gen_per_label=8 (job 195504) ✅ matches paper |
-| tool_hang_image | **0.260** | 50 | faithful port, gen_per_label=8 (job 195514, running) |
+| tool_hang_image | **0.260** | 50 | faithful port, gen_per_label=8 (job 195514) |
+| tool_hang_image | **0.520** | 100 | gen_per_label=8 (job 195514). Peaked here, declined to 0.34@ep150. Job finished ep299. |
+| tool_hang_image | **0.740** | 25 | gen_per_label=4 (job 195552) ✅ exceeds paper (0.67). Sweep winner. |
+| tool_hang_image | 0.700 | 50 | gen_per_label=4 (job 195552, running) |
+| tool_hang_image | 0.560 | 50 | gen_per_label=2 (job 195553, running) |
+| tool_hang_image | 0.200 | 25 | gen_per_label=16 (job 195551, running) |
 | can_lowdim | **0.980** | 50 | faithful port, gen_per_label=8 (job 195505) ✅ matches paper |
 | lift_lowdim | **1.000** | 50 | faithful port, gen_per_label=8 (job 195501) ✅ matches paper |
 | pusht_lowdim | **0.871** | 50 | faithful port, gen_per_label=8 (job 195506) ✅ exceeds paper (0.86) |
@@ -52,5 +57,7 @@ Paper targets (Drifting column):
 
 | Task | Job ID | Epoch | p1/p_1 | p2/p_2 | p3/p_3 | p4/p_4 | mean_score | Notes |
 |------|--------|-------|--------|--------|--------|--------|------------|-------|
-| blockpush_lowdim | 195524 | 525 | 0.30 | 0.12 | — | — | 0.129 | gen_per_label=8 plateaued. CANCELLED. Resubmitting with gen_per_label=32. |
+| blockpush_lowdim | 195524 | 525 | 0.30 | 0.12 | — | — | 0.129 | gen_per_label=8 plateaued. CANCELLED. |
+| blockpush_lowdim | 195525 | 200 | 0.12 | 0.06 | — | — | 0.069 | gen_per_label=32. Worse than gpl=8. CANCELLED. |
+| blockpush_lowdim | 195545 | 1917 | 0.20 | 0.10 | — | — | 0.149 | gen_per_label=2. Plateaued ~p1=0.16-0.20. Running. |
 | kitchen_lowdim | 195523 | 87 | **1.00** | **1.00** | **1.00** | **1.00** | 0.569 | ✅ exceeds all paper targets. Best ep43: p4=1.00. CANCELLED. |
