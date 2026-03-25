@@ -31,8 +31,8 @@ The drifting loss is a **faithful line-by-line port** of the [official JAX imple
 
 | Task | Phase | Diffusion Policy | Drifting Policy (paper) | Our status |
 |------|-------|-----------------|------------------------|------------|
-| BlockPush | Phase 1 (p1) | 0.36 | **0.56** | 0.30 (epoch 190, resubmitting) |
-| BlockPush | Phase 2 (p2) | 0.11 | **0.16** | 0.12 (epoch 190, resubmitting) |
+| BlockPush | Phase 1 (p1) | 0.36 | **0.56** | **0.56** (epoch 247, abs_action, gpl=2) ✅ |
+| BlockPush | Phase 2 (p2) | 0.11 | **0.16** | **0.30** (epoch 247, abs_action, gpl=2) ✅ |
 | Kitchen | Phase 1 (p_1) | 1.00 | **1.00** | **1.00** (epoch 21) ✅ |
 | Kitchen | Phase 2 (p_2) | 1.00 | **1.00** | **1.00** (epoch 21) ✅ |
 | Kitchen | Phase 3 (p_3) | 1.00 | **0.99** | **1.00** (epoch 21) ✅ |
